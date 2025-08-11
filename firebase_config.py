@@ -11,17 +11,22 @@ def initialize_firebase():
     """
     if not firebase_admin._apps:
         try:
-            # Pierwszy sposób - sekrety Streamlit
-            firebase_secrets = st.secrets["firebase_admin"]
+            # Sprawdź czy mamy sekrety jako JSON string czy jako dict
+            try:
+                # Opcja 1: JSON jako string w sekretach
+                firebase_json_string = st.secrets["firebase_json"]
+                firebase_secrets = json.loads(firebase_json_string)
+            except KeyError:
+                # Opcja 2: Sekrety jako TOML dict
+                firebase_secrets = dict(st.secrets["firebase_admin"])
+            
             cred = credentials.Certificate(firebase_secrets)
             
-            # Sprawdź czy jest project_id w sekretach
-            if 'project_id' in firebase_secrets:
-                firebase_admin.initialize_app(cred, {
-                    'projectId': firebase_secrets['project_id']
-                })
-            else:
-                firebase_admin.initialize_app(cred)
+            # Zawsze przekaż project_id explicite
+            project_id = firebase_secrets.get('project_id', 'marbabud')
+            firebase_admin.initialize_app(cred, {
+                'projectId': project_id
+            })
                 
         except Exception as e:
             st.error(f"Błąd inicjalizacji Firebase: {e}")
