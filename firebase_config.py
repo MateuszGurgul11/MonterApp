@@ -10,11 +10,9 @@ def initialize_firebase():
     Inicjalizuje połączenie z Firebase Firestore
     """
     if not firebase_admin._apps:
-        # W przypadku lokalnego developmentu - użyj klucza z pliku
-        # W przypadku produkcji - użyj zmiennych środowiskowych
         try:
-            # Spróbuj załadować z pliku konfiguracyjnego
-            cred = credentials.Certificate("marbabud-firebase-adminsdk-fbsvc-b4355b7a63.json")
+            cred_dict = st.secrets["firebase_admin"]
+            cred = credentials.Certificate(cred_dict)
             firebase_admin.initialize_app(cred)
         except:
             # Fallback - użyj domyślnych credentials (dla Google Cloud)
