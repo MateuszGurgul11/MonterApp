@@ -11,7 +11,9 @@ def initialize_firebase():
         return firestore.client()
 
     if "firebase_admin" in st.secrets:
-        cred = credentials.Certificate(st.secrets["firebase_admin"])
+        # st.secrets["firebase_admin"] to już słownik, nie string
+        firebase_creds = dict(st.secrets["firebase_admin"])
+        cred = credentials.Certificate(firebase_creds)
         firebase_admin.initialize_app(cred)
         return firestore.client()
 
