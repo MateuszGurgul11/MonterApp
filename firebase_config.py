@@ -11,36 +11,11 @@ def initialize_firebase():
     """
     if not firebase_admin._apps:
         try:
-            # Sprawdź czy mamy sekrety jako JSON string czy jako dict
-            try:
-                # Opcja 1: JSON jako string w sekretach
-                firebase_json_string = st.secrets["firebase_json"]
-                firebase_secrets = json.loads(firebase_json_string)
-            except KeyError:
-                # Opcja 2: Sekrety jako TOML dict
-                firebase_secrets = dict(st.secrets["firebase_admin"])
-            
-            cred = credentials.Certificate(firebase_secrets)
-            
-            # Zawsze przekaż project_id explicite
-            project_id = firebase_secrets.get('project_id', 'marbabud')
-            firebase_admin.initialize_app(cred, {
-                'projectId': project_id
-            })
-                
-        except Exception as e:
-            st.error(f"Błąd inicjalizacji Firebase: {e}")
-            try:
-                # Drugi sposób - z pliku JSON (dla lokalnego rozwoju)
-                cred = credentials.Certificate("marbabud-firebase-adminsdk-fbsvc-b4355b7a63.json")
-                firebase_admin.initialize_app(cred)
-            except Exception as e2:
-                st.error(f"Błąd ładowania z pliku: {e2}")
-                # Ostatni fallback - zmienne środowiskowe
-                import os
-                if 'GOOGLE_CLOUD_PROJECT' not in os.environ:
-                    os.environ['GOOGLE_CLOUD_PROJECT'] = 'marbabud'
-                firebase_admin.initialize_app()
+            cred = credentials.Certificate("marbabud-firebase-adminsdk-fbsvc-b4355b7a63.json")
+            firebase_admin.initialize_app(cred)
+        except:
+            # Fallback - użyj domyślnych credentials (dla Google Cloud)
+            firebase_admin.initialize_app()
     
     return firestore.client()
 
