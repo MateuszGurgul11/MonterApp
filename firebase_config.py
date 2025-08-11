@@ -10,13 +10,11 @@ def initialize_firebase():
     if firebase_admin._apps:
         return firestore.client()
 
-    # 1) Streamlit Cloud / lokalnie przez .streamlit/secrets.toml
     if "firebase_admin" in st.secrets:
         cred = credentials.Certificate(st.secrets["firebase_admin"])
         firebase_admin.initialize_app(cred)
         return firestore.client()
 
-    # 2) VPS/Docker: jedna zmienna środowiskowa z JSON-em
     env_json = os.getenv("FIREBASE_ADMIN_JSON")
     if env_json:
         cred = credentials.Certificate(json.loads(env_json))
@@ -28,7 +26,6 @@ def initialize_firebase():
 @st.cache_resource
 def setup_database():
     db = initialize_firebase()
-    # możesz zostawić create_tables_if_not_exist(db) jeśli chcesz auto-tabele
     return db
 
 def create_tables_if_not_exist(db):
