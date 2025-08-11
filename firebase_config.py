@@ -3,21 +3,33 @@ from firebase_admin import credentials, firestore
 import streamlit as st
 from datetime import datetime
 import json
+import os
 
-# Inicjalizacja Firebase
 def initialize_firebase():
-    """
-    Inicjalizuje połączenie z Firebase Firestore
-    """
-    if not firebase_admin._apps:
-        try:
-            cred = credentials.Certificate("marbabud-firebase-adminsdk-fbsvc-b4355b7a63.json")
-            firebase_admin.initialize_app(cred)
-        except:
-            # Fallback - użyj domyślnych credentials (dla Google Cloud)
-            firebase_admin.initialize_app()
-    
-    return firestore.client()
+    """Inicjalizuje połączenie z Firebase Firestore bez pliku na dysku."""
+    if firebase_admin._apps:
+        return firestore.client()
+
+    # 1) Streamlit Cloud / lokalnie przez .streamlit/secrets.toml
+    if "firebase_admin" in st.secrets:
+        cred = credentials.Certificate(st.secrets["firebase_admin"])
+        firebase_admin.initialize_app(cred)
+        return firestore.client()
+
+    # 2) VPS/Docker: jedna zmienna środowiskowa z JSON-em
+    env_json = os.getenv("FIREBASE_ADMIN_JSON")
+    if env_json:
+        cred = credentials.Certificate(json.loads(env_json))
+        firebase_admin.initialize_app(cred)
+        return firestore.client()
+
+    raise RuntimeError("Brak poświadczeń Firebase Admin (secrets['firebase_admin'] lub FIREBASE_ADMIN_JSON).")
+
+@st.cache_resource
+def setup_database():
+    db = initialize_firebase()
+    # możesz zostawić create_tables_if_not_exist(db) jeśli chcesz auto-tabele
+    return db
 
 def create_tables_if_not_exist(db):
     """
