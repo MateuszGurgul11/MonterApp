@@ -11,11 +11,31 @@ def initialize_firebase():
     """
     if not firebase_admin._apps:
         try:
-            cred = credentials.Certificate(st.secrets["firebase_admin"])
-            firebase_admin.initialize_app(cred)
-        except:
-            # Fallback - użyj domyślnych credentials (dla Google Cloud)
-            firebase_admin.initialize_app()
+            # Pierwszy sposób - sekrety Streamlit
+            firebase_secrets = st.secrets["firebase_admin"]
+            cred = credentials.Certificate(firebase_secrets)
+            
+            # Sprawdź czy jest project_id w sekretach
+            if 'project_id' in firebase_secrets:
+                firebase_admin.initialize_app(cred, {
+                    'projectId': firebase_secrets['project_id']
+                })
+            else:
+                firebase_admin.initialize_app(cred)
+                
+        except Exception as e:
+            st.error(f"Błąd inicjalizacji Firebase: {e}")
+            try:
+                # Drugi sposób - z pliku JSON (dla lokalnego rozwoju)
+                cred = credentials.Certificate("marbabud-firebase-adminsdk-fbsvc-b4355b7a63.json")
+                firebase_admin.initialize_app(cred)
+            except Exception as e2:
+                st.error(f"Błąd ładowania z pliku: {e2}")
+                # Ostatni fallback - zmienne środowiskowe
+                import os
+                if 'GOOGLE_CLOUD_PROJECT' not in os.environ:
+                    os.environ['GOOGLE_CLOUD_PROJECT'] = 'marbabud'
+                firebase_admin.initialize_app()
     
     return firestore.client()
 
