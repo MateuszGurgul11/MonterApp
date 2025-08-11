@@ -11,8 +11,7 @@ def initialize_firebase():
     """
     if not firebase_admin._apps:
         try:
-            cred_dict = st.secrets["firebase_admin"]
-            cred = credentials.Certificate(cred_dict)
+            cred = credentials.Certificate(st.secrets["firebase_admin"])
             firebase_admin.initialize_app(cred)
         except:
             # Fallback - użyj domyślnych credentials (dla Google Cloud)
