@@ -223,8 +223,8 @@ class PDFGenerator:
         self.setup_custom_styles()
         # Bazowe ścieżki do katalogów ze zdjęciami
         self.door_image_base_dirs = [
-            "drzwi/",
-            "images/drzwi/",
+            "drzwi_pdf/",
+            "images/drzwi_pdf/",
         ]
         self.door_type_base_dirs = [
             "typ_drzwi/",
@@ -391,6 +391,10 @@ class PDFGenerator:
         for key, value in data_dict.items():
             if value:
                 table_data.append([self.safe_text(f"{key}:") , self.safe_text(str(value))])
+
+        # Jeśli brak danych, dodaj placeholder
+        if not table_data:
+            table_data.append(["Brak danych", ""])
 
         inner_table = Table(table_data)
         inner_table.setStyle(TableStyle([
@@ -715,6 +719,138 @@ class PDFGenerator:
         buffer.seek(0)
         return buffer
 
+    def generate_drzwi_wejsciowe_pdf(self, data):
+        """Generuje PDF dla zamówienia drzwi wejściowych"""
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm, 
+                              topMargin=1*cm, bottomMargin=1*cm)
+        
+        story = []
+        
+        # Nagłówek
+        self.create_header(story, "PROTOKÓŁ POMIARÓW DRZWI WEJŚCIOWYCH")
+        
+        # Informacje podstawowe
+        basic_info = {
+            "Numer strony": data.get('numer_strony', ''),
+            "Imię i Nazwisko": data.get('imie_nazwisko', ''),
+            "Telefon": data.get('telefon', ''),
+            "Pomieszczenie": data.get('pomieszczenie', ''),
+            "Data utworzenia": data.get('data_utworzenia', datetime.now()).strftime("%d.%m.%Y %H:%M") if data.get('data_utworzenia') else '',
+            "ID dokumentu": data.get('id', '')
+        }
+        
+        # Dane produktu (pola 1-9 z protokołu)
+        product_info = {
+            "1. Producent": data.get('producent', ''),
+            "2. Grubość": data.get('grubosc', ''),
+            "3. Wzór": data.get('wzor', ''),
+            "4. Rodzaj okleiny": data.get('rodzaj_okleiny', ''),
+            "5. Ramka": data.get('ramka', ''),
+            "6. Wkładki": data.get('wkladki', ''),
+            "7. Szyba": data.get('szyba', ''),
+            "8. Klamka": data.get('klamka', ''),
+            "9. Dostawa": data.get('dostawa', '')
+        }
+        
+        # Ułóż podstawowe i produktowe obok siebie
+        basic_panel = self.build_info_panel("📋 INFORMACJE PODSTAWOWE", basic_info)
+        product_panel = self.build_info_panel("🏭 DANE PRODUKTU", product_info)
+        top_row = Table([[basic_panel, product_panel]], colWidths=[8.0*cm, 8.0*cm])
+        top_row.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        story.append(top_row)
+        story.append(Spacer(1, 3*mm))
+        
+        # Pomiary otworu
+        pomiary_info = {
+            "Szerokość otworu": data.get('szerokosc_otworu', ''),
+            "Wysokość otworu": data.get('wysokosc_otworu', ''),
+            "Mierzona od": data.get('mierzona_od', ''),
+            "Skrót": data.get('skrot', '')
+        }
+        
+        # Dane techniczne
+        grubosc_muru_val = data.get('grubosc_muru', '')
+        technical_info = {
+            "Grubość muru": f"{grubosc_muru_val} cm" if grubosc_muru_val else "",
+            "Stan ściany": data.get('stan_sciany', ''),
+            "Ościeżnica": data.get('oscieznica', ''),
+            "Okapnik": data.get('okapnik', ''),
+            "Próg": data.get('prog', ''),
+            "Wizjer": "Tak" if data.get('wizjer') else "Nie",
+            "Elektrozaczep": data.get('elektrozaczep', '')
+        }
+        
+        # Ułóż pomiary i dane techniczne obok siebie
+        pomiary_panel = self.build_info_panel("📏 WYMIARY OTWORU", pomiary_info)
+        technical_panel = self.build_info_panel("🏗️ DANE TECHNICZNE", technical_info)
+        middle_row = Table([[pomiary_panel, technical_panel]], colWidths=[8.0*cm, 8.0*cm])
+        middle_row.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        story.append(middle_row)
+        story.append(Spacer(1, 3*mm))
+        
+        # Strona otwierania
+        strona_otwierania = data.get('strona_otwierania', {})
+        kierunek = []
+        if strona_otwierania.get('na_zewnatrz'):
+            kierunek.append("Na zewnątrz")
+        if strona_otwierania.get('do_wewnatrz'):
+            kierunek.append("Do wewnątrz")
+        
+        strona = []
+        if strona_otwierania.get('lewe'):
+            strona.append("Lewe")
+        if strona_otwierania.get('prawe'):
+            strona.append("Prawe")
+        
+        strona_info = {
+            "Kierunek otwierania": ", ".join(kierunek) if kierunek else "",
+            "Strona zawiasów": ", ".join(strona) if strona else ""
+        }
+        
+        # Podpisy i uwagi
+        podpisy_info = {
+            "Podpis Sprzedawcy": data.get('podpis_sprzedawcy', ''),
+            "Podpis Klienta": data.get('podpis_klienta', ''),
+            "Podpis Klienta (powtórny)": data.get('podpis_klienta_2', ''),
+            "Podpis Montera": data.get('podpis_montera', ''),
+            "Uwagi dla Klienta": data.get('uwagi_dla_klienta', ''),
+            "Uwagi Montera": data.get('uwagi_montera', '')
+        }
+        
+        # Ułóż strona otwierania i podpisy obok siebie
+        strona_panel = self.build_info_panel("🚪 STRONA OTWIERANIA", strona_info)
+        podpisy_panel = self.build_info_panel("📝 PODPISY I UWAGI", podpisy_info)
+        bottom_row = Table([[strona_panel, podpisy_panel]], colWidths=[8.0*cm, 8.0*cm])
+        bottom_row.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        story.append(bottom_row)
+        
+        # Stopka z informacjami o systemie
+        story.append(Spacer(1, 5*mm))
+        footer = Paragraph(
+            f"Dokument wygenerowany automatycznie dnia {datetime.now().strftime('%d.%m.%Y o %H:%M')}<br/>"
+            "DOMOWNIK - System zarzadzania zamowieniami",
+            self.styles['ContactInfo']
+        )
+        story.append(footer)
+        
+        # Generuj PDF
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
     def generate_podlogi_pdf(self, data):
         """Generuje PDF dla zamówienia podłóg"""
         buffer = io.BytesIO()
@@ -862,7 +998,7 @@ def generate_pdf_for_order(data, order_type):
     
     Args:
         data: słownik z danymi zamówienia
-        order_type: 'drzwi' lub 'podlogi'
+        order_type: 'drzwi', 'drzwi_wejsciowe' lub 'podlogi'
     
     Returns:
         buffer z PDF
@@ -871,10 +1007,12 @@ def generate_pdf_for_order(data, order_type):
     
     if order_type == 'drzwi':
         return generator.generate_drzwi_pdf(data)
+    elif order_type == 'drzwi_wejsciowe':
+        return generator.generate_drzwi_wejsciowe_pdf(data)
     elif order_type == 'podlogi':
         return generator.generate_podlogi_pdf(data)
     else:
-        raise ValueError("order_type must be 'drzwi' or 'podlogi'")
+        raise ValueError("order_type must be 'drzwi', 'drzwi_wejsciowe' or 'podlogi'")
 
 def create_download_link(pdf_buffer, filename):
     """
@@ -897,7 +1035,7 @@ def display_pdf_download_button(data, order_type, doc_id):
     
     Args:
         data: dane zamówienia
-        order_type: typ zamówienia ('drzwi' lub 'podlogi')
+        order_type: typ zamówienia ('drzwi', 'drzwi_wejsciowe' lub 'podlogi')
         doc_id: ID dokumentu
     """
     try:

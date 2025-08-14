@@ -1,0 +1,338 @@
+import streamlit as st
+import pandas as pd
+from datetime import datetime
+
+from firebase_config import (
+    setup_database,
+    get_drafts_for_monter,
+    update_draft_data,
+    delete_draft,
+    finalize_draft,
+)
+
+
+def page_wymiary():
+    st.set_page_config(page_title="Wymiary (kwarantanna)", layout="wide")
+    st.title("🗂️ Wymiary")
+
+    db = setup_database()
+
+    st.markdown("""
+    Na tej stronie znajdują się szkice pomiarów zapisane przez montera, które nie zostały jeszcze
+    ostatecznie zapisane do bazy danych. Możesz je edytować, usunąć lub sfinalizować.
+    """)
+
+    # Filtr po monterze
+    colf1, colf2 = st.columns([2, 1])
+    with colf1:
+        monter_id = st.text_input("🔑 Filtruj po imieniu montera (opcjonalnie):", value="")
+    with colf2:
+        if st.button("🔄 Odśwież"):
+            st.experimental_rerun()
+
+    # Pobierz szkice
+    drafts = get_drafts_for_monter(db, monter_id if monter_id else None)
+
+    if not drafts:
+        st.info("📭 Brak zapisanych szkiców")
+        return
+
+    # Tabela przeglądowa
+    display_rows = []
+    for d in drafts:
+        display_rows.append({
+            "ID": d.get('id', ''),
+            "Typ": d.get('collection_target', ''),
+            "Monter": d.get('monter_id', ''),
+            "Klient": d.get('imie_nazwisko', ''),
+            "Telefon": d.get('telefon', ''),
+            "Pomieszczenie": d.get('pomieszczenie', ''),
+            "Utworzono": d.get('created_at', ''),
+            "Aktualizowano": d.get('updated_at', ''),
+            "Status": d.get('status', ''),
+        })
+
+    st.subheader("📋 Lista szkiców")
+    df = pd.DataFrame(display_rows)
+    st.dataframe(df, use_container_width=True, hide_index=True)
+
+    # Wybór szkicu
+    st.subheader("✏️ Edycja / Finalizacja szkicu")
+    draft_ids = [d['id'] for d in drafts]
+    selected_id = st.selectbox("Wybierz szkic:", options=[""] + draft_ids, format_func=lambda x: x if x else "Wybierz...")
+
+    if selected_id:
+        draft = next((d for d in drafts if d['id'] == selected_id), None)
+        if not draft:
+            st.error("❌ Nie znaleziono szkicu")
+            return
+
+        st.markdown("---")
+        st.markdown(f"**ID szkicu:** `{selected_id}` | **Typ:** `{draft.get('collection_target','')}` | **Monter:** `{draft.get('monter_id','')}`")
+
+        # Pełna edycja protokołu w zależności od typu szkicu
+        collection_target = draft.get('collection_target', 'drzwi')
+        updates = {}
+
+        if collection_target == 'drzwi':
+            st.subheader("📋 Podstawowe informacje")
+            col1, col2 = st.columns(2)
+
+            with col1:
+                pomieszczenie = st.text_input("Pomieszczenie:", value=draft.get('pomieszczenie', ''))
+                imie_nazwisko = st.text_input("Imię i Nazwisko:", value=draft.get('imie_nazwisko', ''))
+                telefon = st.text_input("Telefon:", value=draft.get('telefon', ''))
+                szer = st.text_input("Szerokość otworu:", value=draft.get('szerokosc_otworu', ''))
+                wys = st.text_input("Wysokość otworu:", value=draft.get('wysokosc_otworu', ''))
+                mierzona_od = st.text_input("Mierzona od:", value=draft.get('mierzona_od', ''))
+
+            with col2:
+                st.subheader("📐 Specyfikacja")
+                grubosc_muru = st.text_input("Grubość muru (cm):", value=str(draft.get('grubosc_muru', '')))
+                stan_sciany = st.text_input("Stan ściany:", value=draft.get('stan_sciany', ''))
+                typ_drzwi = st.radio(
+                    "Typ drzwi:",
+                    ["Przylgowe", "Bezprzylgowe", "Odwrotna Przylga", "Renova"],
+                    index=["Przylgowe", "Bezprzylgowe", "Odwrotna Przylga", "Renova"].index(draft.get('typ_drzwi', 'Przylgowe')) if draft.get('typ_drzwi') in ["Przylgowe", "Bezprzylgowe", "Odwrotna Przylga", "Renova"] else 0,
+                    horizontal=True
+                )
+                oscieznica = st.text_input("Ościeżnica:", value=draft.get('oscieznica', ''))
+                opaska = st.radio("Opaska:", ["6 cm", "8 cm"], index=["6 cm","8 cm"].index(draft.get('opaska', '6 cm')) if draft.get('opaska') in ["6 cm","8 cm"] else 0, horizontal=True)
+                kat_zaciecia = st.selectbox("Kąt zacięcia:", ["45°", "90°", "0°"], index=["45°","90°","0°"].index(draft.get('kat_zaciecia', '45°')) if draft.get('kat_zaciecia') in ["45°","90°","0°"] else 0)
+                prog = st.text_input("Próg:", value=draft.get('prog', ''))
+                wizjer = st.checkbox("Wizjer", value=bool(draft.get('wizjer', False)))
+
+            st.subheader("🚪 Strona otwierania")
+            col_so1, col_so2, col_so3, col_so4 = st.columns(4)
+            so = draft.get('strona_otwierania', {}) or {}
+            with col_so1:
+                lewe_przyl = st.checkbox("LEWE przylg.", value=bool(so.get('lewe_przyl', False)))
+            with col_so2:
+                prawe_przyl = st.checkbox("PRAWE przylg.", value=bool(so.get('prawe_przyl', False)))
+            with col_so3:
+                lewe_odwr = st.checkbox("LEWE odwr.", value=bool(so.get('lewe_odwr', False)))
+            with col_so4:
+                prawe_odwr = st.checkbox("PRAWE odwr.", value=bool(so.get('prawe_odwr', False)))
+
+            st.subheader("📝 Dodatkowe")
+            cold1, cold2 = st.columns([2, 1])
+            with cold1:
+                napis_nad_drzwiami = st.text_input("Otwierane na:", value=draft.get('napis_nad_drzwiami', ''))
+                uwagi_montera = st.text_area("Uwagi montera:", value=draft.get('uwagi_montera', ''), height=100)
+            with cold2:
+                szerokosc_skrzydla = st.text_input("Szerokość skrzydła (cm):", value=str(draft.get('szerokosc_skrzydla', '')))
+            norma = st.text_input("Norma/Szkic:", value=draft.get('norma', ''))
+
+            with st.expander("🏷️ Dane sprzedawcy (opcjonalne)"):
+                col_s1, col_s2 = st.columns(2)
+                with col_s1:
+                    producent = st.text_input("Producent:", value=draft.get('producent', ''))
+                    seria = st.text_input("Seria:", value=draft.get('seria', ''))
+                    typ_prod = st.text_input("Typ:", value=draft.get('typ', ''))
+                    rodzaj_okleiny = st.text_input("Rodzaj okleiny:", value=draft.get('rodzaj_okleiny', ''))
+                    ilosc_szyb = st.text_input("Ilość szyb:", value=draft.get('ilosc_szyb', ''))
+                with col_s2:
+                    zamek = st.text_input("Zamek:", value=draft.get('zamek', ''))
+                    szyba = st.text_input("Szyba:", value=draft.get('szyba', ''))
+                    wentylacja = st.text_input("Wentylacja:", value=draft.get('wentylacja', ''))
+                    klamka = st.text_input("Klamka:", value=draft.get('klamka', ''))
+                    kolor_osc = st.text_input("Kolor ość. (jeśli inna):", value=draft.get('kolor_osc', ''))
+                opcje_dodatkowe = st.text_area("Opcje dodatkowe:", value=draft.get('opcje_dodatkowe', ''), height=80)
+                uwagi_klienta = st.text_area("Uwagi dla klienta:", value=draft.get('uwagi_klienta', ''), height=80)
+
+            # Złóż aktualizacje
+            updates = {
+                'pomieszczenie': pomieszczenie,
+                'imie_nazwisko': imie_nazwisko,
+                'telefon': telefon,
+                'szerokosc_otworu': szer,
+                'wysokosc_otworu': wys,
+                'mierzona_od': mierzona_od,
+                'grubosc_muru': grubosc_muru,
+                'stan_sciany': stan_sciany,
+                'typ_drzwi': typ_drzwi,
+                'oscieznica': oscieznica,
+                'opaska': opaska,
+                'kat_zaciecia': kat_zaciecia,
+                'prog': prog,
+                'wizjer': wizjer,
+                'strona_otwierania': {
+                    'lewe_przyl': lewe_przyl,
+                    'prawe_przyl': prawe_przyl,
+                    'lewe_odwr': lewe_odwr,
+                    'prawe_odwr': prawe_odwr,
+                },
+                'napis_nad_drzwiami': napis_nad_drzwiami,
+                'szerokosc_skrzydla': szerokosc_skrzydla,
+                'uwagi_montera': uwagi_montera,
+                'norma': norma,
+                # opcjonalne sprzedawcy
+                'producent': producent if 'producent' in locals() else draft.get('producent',''),
+                'seria': seria if 'seria' in locals() else draft.get('seria',''),
+                'typ': typ_prod if 'typ_prod' in locals() else draft.get('typ',''),
+                'rodzaj_okleiny': rodzaj_okleiny if 'rodzaj_okleiny' in locals() else draft.get('rodzaj_okleiny',''),
+                'ilosc_szyb': ilosc_szyb if 'ilosc_szyb' in locals() else draft.get('ilosc_szyb',''),
+                'zamek': zamek if 'zamek' in locals() else draft.get('zamek',''),
+                'szyba': szyba if 'szyba' in locals() else draft.get('szyba',''),
+                'wentylacja': wentylacja if 'wentylacja' in locals() else draft.get('wentylacja',''),
+                'klamka': klamka if 'klamka' in locals() else draft.get('klamka',''),
+                'kolor_osc': kolor_osc if 'kolor_osc' in locals() else draft.get('kolor_osc',''),
+                'opcje_dodatkowe': opcje_dodatkowe if 'opcje_dodatkowe' in locals() else draft.get('opcje_dodatkowe',''),
+                'uwagi_klienta': uwagi_klienta if 'uwagi_klienta' in locals() else draft.get('uwagi_klienta',''),
+            }
+
+        elif collection_target == 'drzwi_wejsciowe':
+            st.subheader("📋 Podstawowe informacje")
+            col1, col2 = st.columns(2)
+
+            with col1:
+                numer_strony = st.text_input("Numer strony:", value=draft.get('numer_strony', ''))
+                imie_nazwisko = st.text_input("Imię i Nazwisko:", value=draft.get('imie_nazwisko', ''))
+                telefon = st.text_input("Telefon:", value=draft.get('telefon', ''))
+                pomieszczenie = st.text_input("Pomieszczenie:", value=draft.get('pomieszczenie', ''))
+
+            with col2:
+                szer = st.text_input("Szerokość otworu:", value=draft.get('szerokosc_otworu', ''))
+                wys = st.text_input("Wysokość otworu:", value=draft.get('wysokosc_otworu', ''))
+                mierzona_od = st.selectbox("Mierzona od:", 
+                                         ["szkolenia", "poziomu", "podłogi", "inne"], 
+                                         index=["szkolenia", "poziomu", "podłogi", "inne"].index(draft.get('mierzona_od', 'szkolenia')) if draft.get('mierzona_od') in ["szkolenia", "poziomu", "podłogi", "inne"] else 0)
+                skrot = st.text_input("Skrót:", value=draft.get('skrot', ''))
+
+            st.subheader("🏗️ Dane techniczne")
+            col3, col4 = st.columns(2)
+
+            with col3:
+                grubosc_muru = st.text_input("Grubość muru (cm):", value=str(draft.get('grubosc_muru', '')))
+                stan_sciany = st.text_input("Stan ściany:", value=draft.get('stan_sciany', ''))
+                oscieznica = st.text_input("Ościeżnica:", value=draft.get('oscieznica', ''))
+                okapnik = st.text_input("Okapnik:", value=draft.get('okapnik', ''))
+
+            with col4:
+                prog = st.text_input("Próg:", value=draft.get('prog', ''))
+                wizjer = st.checkbox("Wizjer", value=bool(draft.get('wizjer', False)))
+                elektrozaczep = st.text_input("Elektrozaczep:", value=draft.get('elektrozaczep', ''))
+                uwagi_montera = st.text_area("Uwagi montera:", value=draft.get('uwagi_montera', ''), height=100)
+
+            st.subheader("🚪 Strona otwierania")
+            col5, col6 = st.columns(2)
+            so = draft.get('strona_otwierania', {}) or {}
+
+            with col5:
+                st.markdown("**Kierunek otwierania:**")
+                na_zewnatrz = st.checkbox("Na zewnątrz", value=bool(so.get('na_zewnatrz', False)))
+                do_wewnatrz = st.checkbox("Do wewnątrz", value=bool(so.get('do_wewnatrz', False)))
+
+            with col6:
+                st.markdown("**Strona zawiasów:**")
+                lewe = st.checkbox("Lewe", value=bool(so.get('lewe', False)))
+                prawe = st.checkbox("Prawe", value=bool(so.get('prawe', False)))
+
+            updates = {
+                'numer_strony': numer_strony,
+                'imie_nazwisko': imie_nazwisko,
+                'telefon': telefon,
+                'pomieszczenie': pomieszczenie,
+                'szerokosc_otworu': szer,
+                'wysokosc_otworu': wys,
+                'mierzona_od': mierzona_od,
+                'skrot': skrot,
+                'grubosc_muru': grubosc_muru,
+                'stan_sciany': stan_sciany,
+                'oscieznica': oscieznica,
+                'okapnik': okapnik,
+                'prog': prog,
+                'wizjer': wizjer,
+                'elektrozaczep': elektrozaczep,
+                'uwagi_montera': uwagi_montera,
+                'strona_otwierania': {
+                    'na_zewnatrz': na_zewnatrz,
+                    'do_wewnatrz': do_wewnatrz,
+                    'lewe': lewe,
+                    'prawe': prawe
+                }
+            }
+
+        else:  # podlogi
+            st.subheader("📋 Podstawowe informacje")
+            col1, col2 = st.columns(2)
+            with col1:
+                pomieszczenie = st.text_input("Pomieszczenie:", value=draft.get('pomieszczenie', ''))
+                telefon = st.text_input("Telefon klienta:", value=draft.get('telefon', ''))
+                system_montazu = st.radio(
+                    "System montażu:",
+                    ["Symetrycznie (cegiełka)", "Niesymetrycznie"],
+                    index=["Symetrycznie (cegiełka)", "Niesymetrycznie"].index(draft.get('system_montazu','Symetrycznie (cegiełka)')) if draft.get('system_montazu') in ["Symetrycznie (cegiełka)", "Niesymetrycznie"] else 0,
+                    horizontal=True
+                )
+            with col2:
+                podklad = st.text_input("Podkład:", value=draft.get('podklad', ''))
+                mdf_mozliwy = st.radio("Czy może być MDF?", ["TAK", "NIE"], index=["TAK","NIE"].index(draft.get('mdf_mozliwy','TAK')) if draft.get('mdf_mozliwy') in ["TAK","NIE"] else 0, horizontal=True)
+
+            st.subheader("📏 Pomiary listw")
+            col3, col4, col5 = st.columns(3)
+            with col3:
+                nw = st.number_input("NW (szt.):", min_value=0, step=1, value=int(draft.get('nw', 0)))
+                nz = st.number_input("NZ (szt.):", min_value=0, step=1, value=int(draft.get('nz', 0)))
+            with col4:
+                l = st.number_input("Ł (szt.):", min_value=0, step=1, value=int(draft.get('l', 0)))
+                zl = st.number_input("ZL (szt.):", min_value=0, step=1, value=int(draft.get('zl', 0)))
+            with col5:
+                zp = st.number_input("ZP (szt.):", min_value=0, step=1, value=int(draft.get('zp', 0)))
+
+            st.subheader("🚪 Listwy progowe")
+            col6, col7, col8 = st.columns(3)
+            with col6:
+                listwy_jaka = st.text_input("Jaka?", value=draft.get('listwy_jaka', ''))
+            with col7:
+                listwy_ile = st.text_input("Ile?", value=draft.get('listwy_ile', ''))
+            with col8:
+                listwy_gdzie = st.text_input("Gdzie?", value=draft.get('listwy_gdzie', ''))
+
+            st.subheader("📝 Uwagi montera")
+            uwagi_montera = st.text_area("Uwagi dotyczące pomiarów:", value=draft.get('uwagi_montera', ''), height=100)
+
+            updates = {
+                'pomieszczenie': pomieszczenie,
+                'telefon': telefon,
+                'system_montazu': system_montazu,
+                'podklad': podklad,
+                'mdf_mozliwy': mdf_mozliwy,
+                'nw': int(nw),
+                'nz': int(nz),
+                'l': int(l),
+                'zl': int(zl),
+                'zp': int(zp),
+                'listwy_jaka': listwy_jaka,
+                'listwy_ile': listwy_ile,
+                'listwy_gdzie': listwy_gdzie,
+                'uwagi_montera': uwagi_montera,
+            }
+
+        col_a, col_b, col_c = st.columns(3)
+        with col_a:
+            if st.button("💾 Zapisz zmiany"):
+                if update_draft_data(db, selected_id, updates):
+                    st.success("✅ Zapisano zmiany w szkicu")
+                    st.experimental_rerun()
+        with col_b:
+            if st.button("🗑️ Usuń szkic"):
+                if delete_draft(db, selected_id):
+                    st.success("✅ Szkic usunięty")
+                    st.experimental_rerun()
+        with col_c:
+            if st.button("✅ Finalizuj (zapisz do bazy)", type="primary"):
+                with st.spinner("Finalizowanie szkicu..."):
+                    doc_id, kod = finalize_draft(db, selected_id)
+                    if doc_id:
+                        st.success(f"🎉 Zapisano do bazy. ID: {doc_id} | Kod dostępu: {kod}")
+                        st.balloons()
+                        st.experimental_rerun()
+                    else:
+                        st.error("❌ Nie udało się sfinalizować szkicu")
+
+
+if __name__ == "__main__":
+    page_wymiary()
+
+
