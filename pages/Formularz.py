@@ -901,7 +901,7 @@ def formularz_sprzedawcy_podlogi():
     # Sposób dostępu do formularza
     sposob_dostepu = st.radio(
         "Wybierz sposób dostępu:",
-        ["🔑 Kod dostępu", "📋 Lista formularzy do uzupełnienia"],
+        ["📋 Lista formularzy do uzupełnienia", "🔑 Kod dostępu"],
         key="sposob_dostepu_podlogi"
     )
     
