@@ -7,7 +7,8 @@ from datetime import datetime
 from firebase_config import (
     setup_database, save_pomiary_data, generate_share_link,
     get_forms_for_completion, complete_form_by_seller, get_form_by_access_code,
-    save_draft_data
+    save_draft_data, create_image_uploader, process_uploaded_images, 
+    save_images_to_database, display_images
 )
 from pdf_generator import display_pdf_download_button
 
@@ -139,6 +140,10 @@ def formularz_montera_drzwi():
     norma = st.selectbox("Norma/Szkic:", ["PL", "CZ"], key="norma_monter")
     uwagi_montera = st.text_area("Uwagi montera:", height=100, key="uwagi_montera")
     
+    # Sekcja zdjęć
+    st.markdown("---")
+    uploaded_files = create_image_uploader("drzwi_monter")
+    
     col_save1, col_save2 = st.columns(2)
 
     with col_save1:
@@ -200,6 +205,14 @@ def formularz_montera_drzwi():
                 doc_id, kod_dostepu = save_pomiary_data(db, "drzwi", dane_pomiary, monter_id)
                 
                 if doc_id and kod_dostepu:
+                    # Przetwórz i zapisz zdjęcia jeśli zostały przesłane
+                    if uploaded_files:
+                        with st.spinner("Zapisywanie zdjęć..."):
+                            images_data = process_uploaded_images(uploaded_files, "drzwi", doc_id)
+                            if images_data:
+                                save_images_to_database(db, "drzwi", doc_id, images_data)
+                                st.success(f"✅ Zapisano {len(images_data)} zdjęć")
+                    
                     st.success(f"✅ Pomiary zostały zapisane! ID: {doc_id}")
                     
                     # Wyświetl kod dostępu i link
@@ -437,6 +450,8 @@ def uzupelnij_formularz_drzwi(db, formularz_data):
             st.text(f"Wymiary: {formularz_data.get('szerokosc_otworu', '')} x {formularz_data.get('wysokosc_otworu', '')}")
             st.text(f"Typ: {formularz_data.get('typ_drzwi', '')}")
             st.text(f"Data pomiarów: {formularz_data.get('data_pomiary', datetime.now()).strftime('%Y-%m-%d %H:%M') if formularz_data.get('data_pomiary') else 'Brak'}")
+        
+
     
     # ID sprzedawcy
     sprzedawca_id = st.text_input("🔑 Imię Sprzedawcy:", key="sprzedawca_id")
@@ -444,6 +459,11 @@ def uzupelnij_formularz_drzwi(db, formularz_data):
     if not sprzedawca_id:
         st.warning("⚠️ Proszę podać Imię sprzedawcy")
         return
+    
+    # Wyświetl wszystkie zdjęcia z pomiarów w głównej sekcji
+    if 'zdjecia' in formularz_data and formularz_data['zdjecia']:
+        display_images(formularz_data['zdjecia'], max_width=400)
+        st.markdown("---")
     
     # Formularz danych produktu
     st.subheader("🏷️ Dane produktu")
@@ -611,6 +631,10 @@ def formularz_montera_podlogi():
     # Ostrzeżenie
     st.warning("⚠️ UWAGA!! Podłoże powinno być suche i równe!!")
     
+    # Sekcja zdjęć
+    st.markdown("---")
+    uploaded_files_podlogi = create_image_uploader("podlogi_monter")
+    
     # Przycisk zapisania
     if st.button("💾 Zapisz pomiary podłóg", type="primary"):
         dane_pomiary = {
@@ -648,6 +672,14 @@ def formularz_montera_podlogi():
                 doc_id, kod_dostepu = save_pomiary_data(db, "podlogi", dane_pomiary, monter_id)
                 
                 if doc_id and kod_dostepu:
+                    # Przetwórz i zapisz zdjęcia jeśli zostały przesłane
+                    if uploaded_files_podlogi:
+                        with st.spinner("Zapisywanie zdjęć..."):
+                            images_data = process_uploaded_images(uploaded_files_podlogi, "podlogi", doc_id)
+                            if images_data:
+                                save_images_to_database(db, "podlogi", doc_id, images_data)
+                                st.success(f"✅ Zapisano {len(images_data)} zdjęć")
+                    
                     st.success(f"✅ Pomiary zostały zapisane! ID: {doc_id}")
                     
                     # Wyświetl kod dostępu i link
@@ -763,13 +795,17 @@ def formularz_montera_drzwi_wejsciowe():
         if prawe:
             st.markdown("*Prawe otwieranie*")
     
+    # Sekcja zdjęć
+    st.markdown("---")
+    uploaded_files_we = create_image_uploader("drzwi_wejsciowe_monter")
+    
     col_btn1, col_btn2 = st.columns(2)
     
     with col_btn1:
         zapisz_button = st.button("💾 Zapisz pomiary", type="primary")
     
     with col_btn2:
-        szkic_button = st.button("🗂️ Zapisz do kwarantanny (szkic)")
+        szkic_button = st.button("🗂️ Zapisz do przechowalni")
     
     if zapisz_button:
         # Przygotuj dane do zapisu
@@ -801,6 +837,14 @@ def formularz_montera_drzwi_wejsciowe():
             doc_id, kod_dostepu = save_pomiary_data(db, "drzwi_wejsciowe", dane_formularza, monter_id)
             
             if doc_id:
+                # Przetwórz i zapisz zdjęcia jeśli zostały przesłane
+                if uploaded_files_we:
+                    with st.spinner("Zapisywanie zdjęć..."):
+                        images_data = process_uploaded_images(uploaded_files_we, "drzwi_wejsciowe", doc_id)
+                        if images_data:
+                            save_images_to_database(db, "drzwi_wejsciowe", doc_id, images_data)
+                            st.success(f"✅ Zapisano {len(images_data)} zdjęć")
+                
                 st.success("✅ Pomiary zostały zapisane pomyślnie!")
                 st.info(f"🔑 **Kod dostępu dla sprzedawcy:** `{kod_dostepu}`")
                 st.info("📋 Sprzedawca może teraz uzupełnić dane produktu używając tego kodu")
@@ -1008,6 +1052,8 @@ def uzupelnij_formularz_podlogi(db, formularz_data):
             st.text(f"Suma listw: {suma_listw}")
             st.text(f"MDF możliwy: {formularz_data.get('mdf_mozliwy', '')}")
             st.text(f"Data pomiarów: {formularz_data.get('data_pomiary', datetime.now()).strftime('%Y-%m-%d %H:%M') if formularz_data.get('data_pomiary') else 'Brak'}")
+        
+
     
     # ID sprzedawcy
     sprzedawca_id = st.text_input("🔑 Imię Sprzedawcy:", key="sprzedawca_id_podlogi")
@@ -1015,6 +1061,12 @@ def uzupelnij_formularz_podlogi(db, formularz_data):
     if not sprzedawca_id:
         st.warning("⚠️ Proszę podać Imię sprzedawcy")
         return
+    
+    # Wyświetl wszystkie zdjęcia z pomiarów w głównej sekcji
+    if 'zdjecia' in formularz_data and formularz_data['zdjecia']:
+        st.subheader("📸 Zdjęcia z pomiarów wykonanych przez montera")
+        display_images(formularz_data['zdjecia'], max_width=400)
+        st.markdown("---")
     
     # Formularz danych produktu
     st.subheader("🏷️ Dane produktu")
@@ -1238,6 +1290,8 @@ def uzupelnij_formularz_drzwi_wejsciowe(db, formularz_data):
             st.text(f"Wymiary: {formularz_data.get('szerokosc_otworu', '')} x {formularz_data.get('wysokosc_otworu', '')}")
             st.text(f"Typ: {formularz_data.get('typ_drzwi', '')}")
             st.text(f"Data pomiarów: {formularz_data.get('data_pomiary', datetime.now()).strftime('%Y-%m-%d %H:%M') if formularz_data.get('data_pomiary') else 'Brak'}")
+        
+
     
     # ID sprzedawcy
     sprzedawca_id = st.text_input("🔑 Imię Sprzedawcy:", key="sprzedawca_id")
@@ -1245,6 +1299,12 @@ def uzupelnij_formularz_drzwi_wejsciowe(db, formularz_data):
     if not sprzedawca_id:
         st.warning("⚠️ Proszę podać Imię sprzedawcy")
         return
+    
+    # Wyświetl wszystkie zdjęcia z pomiarów w głównej sekcji
+    if 'zdjecia' in formularz_data and formularz_data['zdjecia']:
+        st.subheader("📸 Zdjęcia z pomiarów wykonanych przez montera")
+        display_images(formularz_data['zdjecia'], max_width=400)
+        st.markdown("---")
     
     # Formularz danych produktu
     st.subheader("🏷️ Dane produktu")

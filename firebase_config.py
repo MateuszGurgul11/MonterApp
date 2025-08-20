@@ -1,11 +1,14 @@
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, storage
 import streamlit as st
 from datetime import datetime
 import json
 import os
 import secrets
 import string
+import base64
+from PIL import Image
+import io
 
 def initialize_firebase():
     """Inicjalizuje połączenie z Firebase Firestore bez pliku na dysku."""
@@ -617,6 +620,163 @@ def generate_share_link(doc_id, kod_dostepu, collection_name):
     """
     # W rzeczywistej aplikacji użyłbyś prawdziwego URL
     return f"https://twoja-aplikacja.com/uzupelnij/{collection_name}/{doc_id}?kod={kod_dostepu}"
+
+# ===================
+# Obsługa zdjęć
+# ===================
+
+def upload_image_to_firebase(uploaded_file, folder_name, doc_id):
+    """
+    Przesyła zdjęcie do Firebase Storage
+    Zwraca URL zdjęcia lub None w przypadku błędu
+    """
+    try:
+        if uploaded_file is None:
+            return None
+            
+        # Sprawdź format pliku
+        if not uploaded_file.type.startswith('image/'):
+            st.error("❌ Można przesyłać tylko pliki obrazów!")
+            return None
+            
+        # Sprawdź rozmiar (maksymalnie 5MB)
+        if uploaded_file.size > 5 * 1024 * 1024:
+            st.error("❌ Plik jest za duży! Maksymalny rozmiar to 5MB")
+            return None
+            
+        # Utwórz unikalną nazwę pliku
+        file_extension = uploaded_file.name.split('.')[-1]
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_name = f"{folder_name}/{doc_id}/{timestamp}_{uploaded_file.name}"
+        
+        # Konwertuj i zmniejsz obraz jeśli potrzeba
+        image = Image.open(uploaded_file)
+        
+        # Zmniejsz obraz jeśli jest za duży (maksymalnie 1920x1080)
+        max_width = 1920
+        max_height = 1080
+        if image.width > max_width or image.height > max_height:
+            image.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+        
+        # Konwertuj do JPEG dla zmniejszenia rozmiaru
+        if image.mode in ("RGBA", "P"):
+            image = image.convert("RGB")
+            
+        # Zapisz do bufora
+        buffer = io.BytesIO()
+        image.save(buffer, format='JPEG', quality=85, optimize=True)
+        buffer.seek(0)
+        
+        # Przesyłanie do Firebase Storage wymaga konfiguracji bucket
+        # Na razie zapisujemy jako base64 w bazie danych
+        img_base64 = base64.b64encode(buffer.getvalue()).decode()
+        
+        return img_base64
+        
+    except Exception as e:
+        st.error(f"❌ Błąd podczas przesyłania zdjęcia: {e}")
+        return None
+
+def save_images_to_database(db, collection_name, doc_id, images_data):
+    """
+    Zapisuje dane zdjęć do dokumentu w bazie danych
+    """
+    try:
+        db.collection(collection_name).document(doc_id).update({
+            'zdjecia': images_data,
+            'data_aktualizacji_zdjec': datetime.now()
+        })
+        return True
+    except Exception as e:
+        st.error(f"❌ Błąd podczas zapisywania zdjęć: {e}")
+        return False
+
+def display_images(images_data, max_width=300):
+    """
+    Wyświetla zdjęcia z danych base64
+    """
+    if not images_data:
+        st.info("📷 Brak zdjęć dla tego pomiaru")
+        return
+        
+    st.subheader("📸 Zdjęcia z pomiarów")
+    
+    # Wyświetl zdjęcia w kolumnach
+    cols = st.columns(3)
+    for i, img_data in enumerate(images_data):
+        with cols[i % 3]:
+            try:
+                # Dekoduj base64
+                img_bytes = base64.b64decode(img_data['data'])
+                
+                # Wyświetl zdjęcie
+                st.image(img_bytes, caption=img_data.get('nazwa', f'Zdjęcie {i+1}'), width=max_width)
+                
+                # Pokaż informacje o zdjęciu
+                if 'data_dodania' in img_data:
+                    st.caption(f"Dodano: {img_data['data_dodania'].strftime('%Y-%m-%d %H:%M')}")
+                    
+            except Exception as e:
+                st.error(f"❌ Błąd wyświetlania zdjęcia {i+1}: {e}")
+
+def create_image_uploader(key_prefix, max_files=5):
+    """
+    Tworzy interfejs do przesyłania zdjęć
+    Zwraca listę przesłanych plików
+    """
+    st.subheader("📷 Dodaj zdjęcia z pomiarów")
+    st.write("Możesz dodać maksymalnie 5 zdjęć (formaty: JPG, PNG, maksymalnie 5MB każde)")
+    
+    uploaded_files = st.file_uploader(
+        "Wybierz zdjęcia:",
+        type=['jpg', 'jpeg', 'png'],
+        accept_multiple_files=True,
+        key=f"{key_prefix}_image_uploader"
+    )
+    
+    if uploaded_files:
+        if len(uploaded_files) > max_files:
+            st.warning(f"⚠️ Możesz przesłać maksymalnie {max_files} zdjęć. Wybrano pierwsze {max_files}.")
+            uploaded_files = uploaded_files[:max_files]
+            
+        # Pokaż podgląd zdjęć
+        st.write("**Podgląd zdjęć:**")
+        cols = st.columns(min(len(uploaded_files), 3))
+        
+        for i, uploaded_file in enumerate(uploaded_files):
+            with cols[i % 3]:
+                try:
+                    image = Image.open(uploaded_file)
+                    st.image(image, caption=uploaded_file.name, width=200)
+                    st.write(f"Rozmiar: {uploaded_file.size/1024:.1f} KB")
+                except Exception as e:
+                    st.error(f"❌ Błąd podglądu: {e}")
+                    
+    return uploaded_files
+
+def process_uploaded_images(uploaded_files, folder_name, doc_id):
+    """
+    Przetwarza przesłane zdjęcia i zwraca dane do zapisania w bazie
+    """
+    if not uploaded_files:
+        return []
+        
+    images_data = []
+    
+    for uploaded_file in uploaded_files:
+        with st.spinner(f"Przetwarzanie {uploaded_file.name}..."):
+            img_base64 = upload_image_to_firebase(uploaded_file, folder_name, doc_id)
+            
+            if img_base64:
+                images_data.append({
+                    'nazwa': uploaded_file.name,
+                    'data': img_base64,
+                    'rozmiar': uploaded_file.size,
+                    'typ': uploaded_file.type,
+                    'data_dodania': datetime.now()
+                })
+                
+    return images_data
 
 # Funkcja inicjalizacyjna do wywołania przy starcie aplikacji
 @st.cache_resource
