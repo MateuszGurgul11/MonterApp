@@ -21,12 +21,6 @@ def _normalize_name(text: str) -> str:
     return norm or "nieznany_klient"
 
 
-def _last3(phone: str) -> str:
-    if not phone:
-        return "000"
-    digits = re.sub(r'\D', '', str(phone))
-    return (digits[-3:] if len(digits) >= 3 else digits.zfill(3)) or "000"
-
 
 def _as_dt(value) -> datetime:
     if isinstance(value, datetime):
@@ -43,7 +37,6 @@ def _as_dt(value) -> datetime:
 
 def _folder_name(rec: dict) -> tuple[str, datetime]:
     name = rec.get('imie_nazwisko') or rec.get('nazwisko') or ''
-    phone = rec.get('telefon', '')
     # preferuj data_pomiary, w przeciwnym razie data_utworzenia
     dt = _as_dt(rec.get('data_pomiary') or rec.get('data_utworzenia'))
     day = dt.strftime('%d') if dt != datetime.min else '00'
@@ -51,8 +44,7 @@ def _folder_name(rec: dict) -> tuple[str, datetime]:
     year = dt.strftime('%Y') if dt != datetime.min else '0000'
 
     n = _normalize_name(name)
-    suf = _last3(phone)
-    folder = f"{n}_{suf}_{day}_{month}_{year}"
+    folder = f"{n}_{day}_{month}_{year}"
     return folder, dt
 
 

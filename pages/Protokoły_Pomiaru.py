@@ -67,7 +67,7 @@ def formularz_montera_drzwi():
                 st.write("🖼️ Obrazek niedostępny")
         elif typ_drzwi == "Bezprzylgowe":
             try:
-                st.image("typ_drzwi/inne.png", width=120, caption=typ_drzwi)
+                st.image("typ_drzwi/bezprzylgowe.png", width=120, caption=typ_drzwi)
             except:
                 st.write("🖼️ Obrazek niedostępny")
         elif typ_drzwi == "Odwrotna Przylga":
@@ -77,7 +77,7 @@ def formularz_montera_drzwi():
                 st.write("🖼️ Obrazek niedostępny")
         elif typ_drzwi == "Renova":
             try:
-                st.image("typ_drzwi/renova.png", width=120, caption="Renova")
+                st.image("typ_drzwi/inne.png", width=120, caption="Renova")
             except:
                 st.write("🖼️ Obrazek niedostępny")
     
@@ -97,37 +97,71 @@ def formularz_montera_drzwi():
     st.subheader("🚪 Strona otwierania")
     col5, col6, col7, col8 = st.columns(4)
     
-    with col5:
-        st.markdown("**LEWE (przylgowe/bezprzylgowe)**")
-        lewe_przyl = st.checkbox("LEWE przylg.", key="lewe_przyl_monter")
-        try:
-            st.image("drzwi/lewe_przyl.png", width=150, caption="Lewe przylgowe")
-        except:
-            st.write("🖼️ Obrazek niedostępny")
+    strona_otwierania = st.radio(
+        "Kierunek otwierania drzwi:",
+        ["Nie wybrano", "LEWE przylgowe", "PRAWE przylgowe", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"],
+        key="strona_otwierania_monter",
+        horizontal=True
+    )
     
-    with col6:
-        st.markdown("**PRAWE (przylgowe/bezprzylgowe)**")
-        prawe_przyl = st.checkbox("PRAWE przylg.", key="prawe_przyl_monter")
-        try:
-            st.image("drzwi/prawe_przyl.png", width=150, caption="Prawe przylgowe")
-        except:
-            st.write("🖼️ Obrazek niedostępny")
+    # Pokaż odpowiedni obrazek dla wybranej opcji
+    col_img1, col_img2, col_img3, col_img4 = st.columns(4)
     
-    with col7:
-        st.markdown("**LEWE** **(odwrotna przylga)**")
-        lewe_odwr = st.checkbox("LEWE odwr.", key="lewe_odwr_monter")
-        try:
-            st.image("drzwi/lewe_odwr.png", width=150, caption="Lewe odwrotne")
-        except:
-            st.write("🖼️ Obrazek niedostępny")
+    with col_img1:
+        if strona_otwierania == "LEWE przylgowe":
+            st.markdown("**✅ LEWE (przylgowe/bezprzylgowe)**")
+            try:
+                st.image("drzwi/lewe_przyl.png", width=150, caption="Lewe przylgowe")
+            except:
+                st.write("🖼️ Obrazek niedostępny")
+        else:
+            st.markdown("**LEWE (przylgowe/bezprzylgowe)**")
+            try:
+                st.image("drzwi/lewe_przyl.png", width=150, caption="Lewe przylgowe", use_container_width=False)
+            except:
+                st.write("🖼️ Obrazek niedostępny")
     
-    with col8:
-        st.markdown("**PRAWE (odwrotna przylga)**")
-        prawe_odwr = st.checkbox("PRAWE odwr.", key="prawe_odwr_monter")
-        try:
-            st.image("drzwi/prawe_odwr.png", width=150, caption="Prawe odwrotne")
-        except:
-            st.write("🖼️ Obrazek niedostępny")
+    with col_img2:
+        if strona_otwierania == "PRAWE przylgowe":
+            st.markdown("**✅ PRAWE (przylgowe/bezprzylgowe)**")
+            try:
+                st.image("drzwi/prawe_przyl.png", width=150, caption="Prawe przylgowe")
+            except:
+                st.write("🖼️ Obrazek niedostępny")
+        else:
+            st.markdown("**PRAWE (przylgowe/bezprzylgowe)**")
+            try:
+                st.image("drzwi/prawe_przyl.png", width=150, caption="Prawe przylgowe", use_container_width=False)
+            except:
+                st.write("🖼️ Obrazek niedostępny")
+    
+    with col_img3:
+        if strona_otwierania == "LEWE odwrotna przylga":
+            st.markdown("**✅ LEWE (odwrotna przylga)**")
+            try:
+                st.image("drzwi/lewe_odwr.png", width=150, caption="Lewe odwrotne")
+            except:
+                st.write("🖼️ Obrazek niedostępny")
+        else:
+            st.markdown("**LEWE (odwrotna przylga)**")
+            try:
+                st.image("drzwi/lewe_odwr.png", width=150, caption="Lewe odwrotne", use_container_width=False)
+            except:
+                st.write("🖼️ Obrazek niedostępny")
+    
+    with col_img4:
+        if strona_otwierania == "PRAWE odwrotna przylga":
+            st.markdown("**✅ PRAWE (odwrotna przylga)**")
+            try:
+                st.image("drzwi/prawe_odwr.png", width=150, caption="Prawe odwrotne")
+            except:
+                st.write("🖼️ Obrazek niedostępny")
+        else:
+            st.markdown("**PRAWE (odwrotna przylga)**")
+            try:
+                st.image("drzwi/prawe_odwr.png", width=150, caption="Prawe odwrotne", use_container_width=False)
+            except:
+                st.write("🖼️ Obrazek niedostępny")
     # Dodatkowe opisy przy ilustracji oraz szerokość
     col_top, col_mid = st.columns([2, 1])
     with col_top:
@@ -144,122 +178,9 @@ def formularz_montera_drzwi():
     st.markdown("---")
     uploaded_files = create_image_uploader("drzwi_monter")
     
-    col_save1, col_save2 = st.columns(2)
+    save_draft_clicked = st.button("🗂️ Zapisz do przechowalni", type="primary")
 
-    with col_save1:
-        save_clicked = st.button("💾 Zapisz pomiary", type="primary")
-    with col_save2:
-        save_draft_clicked = st.button("🗂️ Zapisz do kwarantanny (szkic)")
-
-    # ZAPIS DO BAZY (finalizacja etapu montera)
-    if save_clicked:
-        dane_pomiary = {
-            "pomieszczenie": pomieszczenie,
-            "imie_nazwisko": imie_nazwisko,
-            "telefon": telefon,
-            "szerokosc_otworu": szerokosc_otworu,
-            "wysokosc_otworu": wysokosc_otworu,
-            "mierzona_od": mierzona_od,
-            "typ_drzwi": typ_drzwi,
-            "norma": norma,
-            "grubosc_muru": grubosc_muru,
-            "stan_sciany": stan_sciany,
-            "oscieznica": oscieznica,
-            "opaska": opaska,
-            "kat_zaciecia": kat_zaciecia,
-            "prog": prog,
-            "wizjer": wizjer,
-            "strona_otwierania": {
-                "lewe_przyl": lewe_przyl,
-                "prawe_przyl": prawe_przyl,
-                "lewe_odwr": lewe_odwr,
-                "prawe_odwr": prawe_odwr
-            },
-            # Opisy dla zdjęcia i szerokość skrzydła
-            "napis_nad_drzwiami": napis_nad_drzwiami,
-            "szerokosc_skrzydla": szerokosc_skrzydla,
-            "uwagi_montera": uwagi_montera,
-            # Pola sprzedawcy - puste na razie
-            "producent": "",
-            "seria": "",
-            "typ": "",
-            "rodzaj_okleiny": "",
-            "ilosc_szyb": "",
-            "zamek": "",
-            "szyba": "",
-            "wentylacja": "",
-            "klamka": "",
-            "kolor_wizjera": "",
-            "opcje_dodatkowe": "",
-            "uwagi_klienta": ""
-        }
-        
-        # Sprawdź wymagane pola
-        wymagane_pola = ["pomieszczenie", "telefon", "szerokosc_otworu", "wysokosc_otworu"]
-        brakujace_pola = [pole for pole in wymagane_pola if not dane_pomiary.get(pole)]
-        
-        if brakujace_pola:
-            st.error(f"❌ Proszę wypełnić wymagane pola: {', '.join(brakujace_pola)}")
-        else:
-            with st.spinner("Zapisywanie pomiarów..."):
-                doc_id, kod_dostepu = save_pomiary_data(db, "drzwi", dane_pomiary, monter_id)
-                
-                if doc_id and kod_dostepu:
-                    # Przetwórz i zapisz zdjęcia jeśli zostały przesłane
-                    if uploaded_files:
-                        with st.spinner("Zapisywanie zdjęć..."):
-                            images_data = process_uploaded_images(uploaded_files, "drzwi", doc_id)
-                            if images_data:
-                                save_images_to_database(db, "drzwi", doc_id, images_data)
-                                st.success(f"✅ Zapisano {len(images_data)} zdjęć")
-                    
-                    st.success(f"✅ Pomiary zostały zapisane! ID: {doc_id}")
-                    
-                    # Wyświetl kod dostępu i link
-                    st.info(f"🔑 **Kod dostępu dla sprzedawcy:** {kod_dostepu}")
-                    
-                    # Generuj QR kod
-                    link = generate_share_link(doc_id, kod_dostepu, "drzwi")
-                    
-                    col_qr1, col_qr2 = st.columns(2)
-                    
-                    with col_qr1:
-                        st.subheader("📲 QR Code")
-                        qr_code_data = f"KOD:{kod_dostepu}|ID:{doc_id}|TYP:drzwi"
-                        
-                        qr = qrcode.QRCode(version=1, box_size=10, border=5)
-                        qr.add_data(qr_code_data)
-                        qr.make(fit=True)
-                        
-                        qr_img = qr.make_image(fill_color="black", back_color="white")
-                        
-                        # Konwertuj do base64 dla wyświetlenia
-                        buffer = io.BytesIO()
-                        qr_img.save(buffer, format='PNG')
-                        buffer.seek(0)
-                        qr_b64 = base64.b64encode(buffer.getvalue()).decode()
-                        
-                        st.markdown(f'<img src="data:image/png;base64,{qr_b64}" width="200">', unsafe_allow_html=True)
-                        st.caption("Kod do zeskanowania przez sprzedawcę")
-                    
-                    with col_qr2:
-                        st.subheader("📋 Instrukcje")
-                        st.markdown("""
-                        **Przekaż sprzedawcy:**
-                        1. 🔑 Kod dostępu: `{}`
-                        2. 📱 Lub QR kod do zeskanowania
-                        3. 📝 Sprzedawca uzupełni dane produktu
-                        
-                        **Status:** ✅ Pomiary wykonane
-                        """.format(kod_dostepu))
-                    
-                    # Pokaż zapisane dane
-                    with st.expander("Pokaż zapisane pomiary"):
-                        st.json(dane_pomiary)
-                else:
-                    st.error("❌ Błąd podczas zapisywania pomiarów!")
-
-    # ZAPIS DO KWARANTANNY (szkic)
+    # ZAPIS DO PRZECHOWALNI (szkic)
     if save_draft_clicked:
         dane_pomiary = {
             "pomieszczenie": pomieszczenie,
@@ -278,10 +199,10 @@ def formularz_montera_drzwi():
             "prog": prog,
             "wizjer": wizjer,
             "strona_otwierania": {
-                "lewe_przyl": lewe_przyl,
-                "prawe_przyl": prawe_przyl,
-                "lewe_odwr": lewe_odwr,
-                "prawe_odwr": prawe_odwr
+                "lewe_przyl": strona_otwierania == "LEWE przylgowe",
+                "prawe_przyl": strona_otwierania == "PRAWE przylgowe",
+                "lewe_odwr": strona_otwierania == "LEWE odwrotna przylga",
+                "prawe_odwr": strona_otwierania == "PRAWE odwrotna przylga"
             },
             "napis_nad_drzwiami": napis_nad_drzwiami,
             "szerokosc_skrzydla": szerokosc_skrzydla,
@@ -305,7 +226,7 @@ def formularz_sprzedawcy_drzwi():
     # Sposób dostępu do formularza
     sposob_dostepu = st.radio(
         "Wybierz sposób dostępu:",
-        ["🔑 Kod dostępu", "📋 Lista formularzy do uzupełnienia"],
+        ["📋 Lista formularzy do uzupełnienia", "🔑 Kod dostępu"],
         key="sposob_dostepu"
     )
     
@@ -347,20 +268,13 @@ def formularz_sprzedawcy_drzwi():
             t = re.sub(r'[^a-zA-Z0-9]+','_',t).strip('_').lower()
             return t or "nieznany_klient"
 
-        def _last3(phone):
-            import re
-            if not phone:
-                return "000"
-            d = re.sub(r'\D','', str(phone))
-            return (d[-3:] if len(d)>=3 else d.zfill(3))
-
         def _folder_key(f):
             from datetime import datetime
             dt = f.get('data_pomiary') or f.get('data_utworzenia') or datetime.min
             day = dt.strftime('%d') if hasattr(dt, 'strftime') else '00'
             month = dt.strftime('%m') if hasattr(dt, 'strftime') else '00'
             year = dt.strftime('%Y') if hasattr(dt, 'strftime') else '0000'
-            return f"{_norm_name(f.get('imie_nazwisko',''))}_{_last3(f.get('telefon',''))}_{day}_{month}_{year}"
+            return f"{_norm_name(f.get('imie_nazwisko',''))}_{day}_{month}_{year}"
         
         if formularze:
             # Przygotuj dane do wyświetlenia
@@ -437,20 +351,86 @@ def uzupelnij_formularz_drzwi(db, formularz_data):
     """Formularz uzupełniania danych produktu"""
     st.subheader("🎯 Uzupełnienie danych produktu")
     
-    # Pokaż podstawowe informacje z pomiarów
-    with st.expander("📋 Informacje z pomiarów (tylko do odczytu)"):
-        col_info1, col_info2 = st.columns(2)
+    # Informacje z pomiarów - część tylko do odczytu i część edytowalna
+    with st.expander("📋 Informacje z pomiarów montera", expanded=True):
+        # Pola TYLKO DO ODCZYTU (niezmienne przez sprzedawcę)
+        st.markdown("**🔒 DANE NIEZMIENNE (z pomiarów montera):**")
+        col_readonly1, col_readonly2 = st.columns(2)
         
-        with col_info1:
-            st.text(f"Pomieszczenie: {formularz_data.get('pomieszczenie', '')}")
-            st.text(f"Klient: {formularz_data.get('imie_nazwisko', '')}")
-            st.text(f"Telefon: {formularz_data.get('telefon', '')}")
+        with col_readonly1:
+            st.text(f"🏠 Pomieszczenie: {formularz_data.get('pomieszczenie', '')}")
+            st.text(f"📏 Szerokość otworu: {formularz_data.get('szerokosc_otworu', '')} cm")
+            st.text(f"📏 Wysokość otworu: {formularz_data.get('wysokosc_otworu', '')} cm")
+            st.text(f"🧱 Grubość muru: {formularz_data.get('grubosc_muru', '')} cm")
+            st.text(f"📐 Mierzona od: {formularz_data.get('mierzona_od', '')}")
         
-        with col_info2:
-            st.text(f"Wymiary: {formularz_data.get('szerokosc_otworu', '')} x {formularz_data.get('wysokosc_otworu', '')}")
-            st.text(f"Typ: {formularz_data.get('typ_drzwi', '')}")
-            st.text(f"Data pomiarów: {formularz_data.get('data_pomiary', datetime.now()).strftime('%Y-%m-%d %H:%M') if formularz_data.get('data_pomiary') else 'Brak'}")
+        with col_readonly2:
+            st.text(f"🏗️ Stan ściany: {formularz_data.get('stan_sciany', '')}")
+            st.text(f"👤 Klient: {formularz_data.get('imie_nazwisko', '')}")
+            st.text(f"📞 Telefon: {formularz_data.get('telefon', '')}")
+            st.text(f"👷 Monter: {formularz_data.get('monter_id', '')}")
+            st.text(f"📅 Data: {formularz_data.get('data_pomiary', datetime.now()).strftime('%Y-%m-%d %H:%M') if formularz_data.get('data_pomiary') else 'Brak'}")
         
+        # Strona otwierania (TYLKO DO ODCZYTU)
+        strona_otw = formularz_data.get('strona_otwierania', {}) or {}
+        if any(strona_otw.values()):
+            st.markdown("**🚪 STRONA OTWIERANIA (niezmienne):**")
+            strony_txt = []
+            if strona_otw.get('lewe_przyl'): strony_txt.append("Lewe przylgowe")
+            if strona_otw.get('prawe_przyl'): strony_txt.append("Prawe przylgowe")
+            if strona_otw.get('lewe_odwr'): strony_txt.append("Lewe odwrotna przylga")
+            if strona_otw.get('prawe_odwr'): strony_txt.append("Prawe odwrotna przylga")
+            st.text(f"🔒 Kierunek: {', '.join(strony_txt)}")
+            
+            if formularz_data.get('napis_nad_drzwiami'):
+                st.text(f"🔒 Otwierane na: {formularz_data.get('napis_nad_drzwiami', '')}")
+            if formularz_data.get('szerokosc_skrzydla'):
+                st.text(f"🔒 Szerokość skrzydła: {formularz_data.get('szerokosc_skrzydla', '')} cm")
+        
+        # Uwagi montera (TYLKO DO ODCZYTU)
+        if formularz_data.get('uwagi_montera'):
+            st.markdown("**💬 UWAGI MONTERA (niezmienne):**")
+            st.text_area("", value=formularz_data.get('uwagi_montera', ''), height=80, disabled=True, key="readonly_uwagi_montera")
+        
+        # Norma/Szkic (TYLKO DO ODCZYTU)
+        if formularz_data.get('norma'):
+            st.text(f"🔒 Norma/Szkic: {formularz_data.get('norma', '')}")
+        
+        st.markdown("---")
+        
+        # Pola EDYTOWALNE przez sprzedawcę
+        st.markdown("**✏️ DANE TECHNICZNE DO EDYCJI:**")
+        col_edit1, col_edit2 = st.columns(2)
+        
+        with col_edit1:
+            typ_drzwi_edit = st.selectbox("Typ drzwi:", 
+                                        ["Przylgowe", "Bezprzylgowe", "Odwrotna Przylga", "Renova"], 
+                                        index=["Przylgowe", "Bezprzylgowe", "Odwrotna Przylga", "Renova"].index(formularz_data.get('typ_drzwi', 'Przylgowe')) if formularz_data.get('typ_drzwi') in ["Przylgowe", "Bezprzylgowe", "Odwrotna Przylga", "Renova"] else 0,
+                                        key="typ_drzwi_edit")
+            
+            oscieznica_edit = st.text_input("Ościeżnica:", 
+                                          value=formularz_data.get('oscieznica', ''), 
+                                          key="oscieznica_edit")
+            
+            opaska_edit = st.radio("Opaska:", 
+                                 ["6 cm", "8 cm"], 
+                                 index=["6 cm", "8 cm"].index(formularz_data.get('opaska', '6 cm')) if formularz_data.get('opaska') in ["6 cm", "8 cm"] else 0,
+                                 horizontal=True,
+                                 key="opaska_edit")
+        
+        with col_edit2:
+            kat_zaciecia_edit = st.selectbox("Kąt zacięcia:", 
+                                           ["45°", "90°", "0°"], 
+                                           index=["45°", "90°", "0°"].index(formularz_data.get('kat_zaciecia', '45°')) if formularz_data.get('kat_zaciecia') in ["45°", "90°", "0°"] else 0,
+                                           key="kat_zaciecia_edit")
+            
+            prog_edit = st.text_input("Próg:", 
+                                    value=formularz_data.get('prog', ''), 
+                                    key="prog_edit")
+            
+            wizjer_edit = st.checkbox("Wizjer", 
+                                    value=bool(formularz_data.get('wizjer', False)),
+                                    key="wizjer_edit")
 
     
     # ID sprzedawcy
@@ -467,26 +447,117 @@ def uzupelnij_formularz_drzwi(db, formularz_data):
     
     # Formularz danych produktu
     st.subheader("🏷️ Dane produktu")
+    
+    # Inicjalizacja auto-fill values w session_state
+    if 'autofill_drzwi' not in st.session_state:
+        st.session_state.autofill_drzwi = {}
+    
+    st.info("💡 **Auto-fill:** Zaznacz checkbox obok pól, które mają być automatycznie kopiowane do następnych protokołów tego samego klienta")
+    
     col1, col2 = st.columns(2)
     
     with col1:
-        producent = st.text_input("1. Producent:", key="producent_sprzedawca")
-        seria = st.text_input("2. Seria:", key="seria_sprzedawca")
-        typ_produktu = st.text_input("3. Typ:", key="typ_sprzedawca")
-        rodzaj_okleiny = st.text_input("4. Rodzaj okleiny:", key="okleina_sprzedawca")
-        ilosc_szyb = st.text_input("5. Ilość szyb:", key="szyby_sprzedawca")
+        # Producent z auto-fill
+        col_prod1, col_prod2 = st.columns([4, 1])
+        with col_prod1:
+            producent_value = st.session_state.autofill_drzwi.get('producent', '') if st.session_state.autofill_drzwi.get('producent_auto', False) else ''
+            producent = st.text_input("1. Producent:", value=producent_value, key="producent_sprzedawca")
+        with col_prod2:
+            producent_auto = st.checkbox("🔄", value=st.session_state.autofill_drzwi.get('producent_auto', False), key="producent_auto", help="Auto-fill dla następnych protokołów")
+        
+        # Seria z auto-fill
+        col_seria1, col_seria2 = st.columns([4, 1])
+        with col_seria1:
+            seria_value = st.session_state.autofill_drzwi.get('seria', '') if st.session_state.autofill_drzwi.get('seria_auto', False) else ''
+            seria = st.text_input("2. Seria:", value=seria_value, key="seria_sprzedawca")
+        with col_seria2:
+            seria_auto = st.checkbox("🔄", value=st.session_state.autofill_drzwi.get('seria_auto', False), key="seria_auto", help="Auto-fill dla następnych protokołów")
+        
+        # Typ z auto-fill
+        col_typ1, col_typ2 = st.columns([4, 1])
+        with col_typ1:
+            typ_value = st.session_state.autofill_drzwi.get('typ', '') if st.session_state.autofill_drzwi.get('typ_auto', False) else ''
+            typ_produktu = st.text_input("3. Typ:", value=typ_value, key="typ_sprzedawca")
+        with col_typ2:
+            typ_auto = st.checkbox("🔄", value=st.session_state.autofill_drzwi.get('typ_auto', False), key="typ_auto", help="Auto-fill dla następnych protokołów")
+        
+        # Okleina z auto-fill
+        col_okl1, col_okl2 = st.columns([4, 1])
+        with col_okl1:
+            okleina_value = st.session_state.autofill_drzwi.get('rodzaj_okleiny', '') if st.session_state.autofill_drzwi.get('okleina_auto', False) else ''
+            rodzaj_okleiny = st.text_input("4. Rodzaj okleiny:", value=okleina_value, key="okleina_sprzedawca")
+        with col_okl2:
+            okleina_auto = st.checkbox("🔄", value=st.session_state.autofill_drzwi.get('okleina_auto', False), key="okleina_auto", help="Auto-fill dla następnych protokołów")
+        
+        # Szyby z auto-fill
+        col_szyby1, col_szyby2 = st.columns([4, 1])
+        with col_szyby1:
+            szyby_value = st.session_state.autofill_drzwi.get('ilosc_szyb', '') if st.session_state.autofill_drzwi.get('szyby_auto', False) else ''
+            ilosc_szyb = st.text_input("5. Ilość szyb:", value=szyby_value, key="szyby_sprzedawca")
+        with col_szyby2:
+            szyby_auto = st.checkbox("🔄", value=st.session_state.autofill_drzwi.get('szyby_auto', False), key="szyby_auto", help="Auto-fill dla następnych protokołów")
     
     with col2:
-        zamek = st.text_input("6. Zamek:", key="zamek_sprzedawca")
-        szyba = st.text_input("7. Szyba:", key="szyba_sprzedawca")
-        wentylacja = st.text_input("8. Wentylacja:", key="wentylacja_sprzedawca")
-        klamka = st.text_input("9. Klamka:", key="klamka_sprzedawca")
-        kolor_wizjera = st.text_input("10. Kolor wizjera:", key="kolor_wizjera_sprzedawca")
+        # Zamek z auto-fill
+        col_zamek1, col_zamek2 = st.columns([4, 1])
+        with col_zamek1:
+            zamek_value = st.session_state.autofill_drzwi.get('zamek', '') if st.session_state.autofill_drzwi.get('zamek_auto', False) else ''
+            zamek = st.text_input("6. Zamek:", value=zamek_value, key="zamek_sprzedawca")
+        with col_zamek2:
+            zamek_auto = st.checkbox("🔄", value=st.session_state.autofill_drzwi.get('zamek_auto', False), key="zamek_auto", help="Auto-fill dla następnych protokołów")
+        
+        # Szyba z auto-fill
+        col_szyba1, col_szyba2 = st.columns([4, 1])
+        with col_szyba1:
+            szyba_value = st.session_state.autofill_drzwi.get('szyba', '') if st.session_state.autofill_drzwi.get('szyba_auto', False) else ''
+            szyba = st.text_input("7. Szyba:", value=szyba_value, key="szyba_sprzedawca")
+        with col_szyba2:
+            szyba_auto = st.checkbox("🔄", value=st.session_state.autofill_drzwi.get('szyba_auto', False), key="szyba_auto", help="Auto-fill dla następnych protokołów")
+        
+        # Wentylacja z auto-fill
+        col_went1, col_went2 = st.columns([4, 1])
+        with col_went1:
+            went_value = st.session_state.autofill_drzwi.get('wentylacja', '') if st.session_state.autofill_drzwi.get('wentylacja_auto', False) else ''
+            wentylacja = st.text_input("8. Wentylacja:", value=went_value, key="wentylacja_sprzedawca")
+        with col_went2:
+            wentylacja_auto = st.checkbox("🔄", value=st.session_state.autofill_drzwi.get('wentylacja_auto', False), key="wentylacja_auto", help="Auto-fill dla następnych protokołów")
+        
+        # Klamka z auto-fill
+        col_klamka1, col_klamka2 = st.columns([4, 1])
+        with col_klamka1:
+            klamka_value = st.session_state.autofill_drzwi.get('klamka', '') if st.session_state.autofill_drzwi.get('klamka_auto', False) else ''
+            klamka = st.text_input("9. Klamka:", value=klamka_value, key="klamka_sprzedawca")
+        with col_klamka2:
+            klamka_auto = st.checkbox("🔄", value=st.session_state.autofill_drzwi.get('klamka_auto', False), key="klamka_auto", help="Auto-fill dla następnych protokołów")
+        
+        # Kolor wizjera z auto-fill
+        col_wiz1, col_wiz2 = st.columns([4, 1])
+        with col_wiz1:
+            wiz_value = st.session_state.autofill_drzwi.get('kolor_wizjera', '') if st.session_state.autofill_drzwi.get('wizjer_auto', False) else ''
+            kolor_wizjera = st.text_input("10. Kolor wizjera:", value=wiz_value, key="kolor_wizjera_sprzedawca")
+        with col_wiz2:
+            wizjer_auto = st.checkbox("🔄", value=st.session_state.autofill_drzwi.get('wizjer_auto', False), key="wizjer_auto", help="Auto-fill dla następnych protokołów")
+        
+        # Wypełnienie z auto-fill
+        col_wyp1, col_wyp2 = st.columns([4, 1])
+        with col_wyp1:
+            wyp_value = st.session_state.autofill_drzwi.get('wypelnienie', '') if st.session_state.autofill_drzwi.get('wypelnienie_auto', False) else ''
+            wypelnienie = st.text_input("11. Wypełnienie:", value=wyp_value, key="wypelnienie_sprzedawca")
+        with col_wyp2:
+            wypelnienie_auto = st.checkbox("🔄", value=st.session_state.autofill_drzwi.get('wypelnienie_auto', False), key="wypelnienie_auto", help="Auto-fill dla następnych protokołów")
+        
+        # Kolor okucia z auto-fill
+        col_okuc1, col_okuc2 = st.columns([4, 1])
+        with col_okuc1:
+            okuc_value = st.session_state.autofill_drzwi.get('kolor_okuc', '') if st.session_state.autofill_drzwi.get('okuc_auto', False) else ''
+            kolor_okuc = st.text_input("12. Kolor okucia:", value=okuc_value, key="kolor_okuc_sprzedawca")
+        with col_okuc2:
+            okuc_auto = st.checkbox("🔄", value=st.session_state.autofill_drzwi.get('okuc_auto', False), key="okuc_auto", help="Auto-fill dla następnych protokołów")
+        
         kolor_osc = st.checkbox("Inny kolor ościeżnicy")
         if kolor_osc:
             kolor_osc = st.text_input("Kolor ość. (jeśli inna):", key="kolor_osc_sprzedawca")
     
-    # Opcje dodatkowe
     st.subheader("➕ Opcje dodatkowe")
     opcje_dodatkowe = st.text_area("", height=100, key="opcje_sprzedawca")
     
@@ -498,6 +569,79 @@ def uzupelnij_formularz_drzwi(db, formularz_data):
     
     # Przycisk finalizacji
     if st.button("✅ Finalizuj zamówienie", type="primary"):
+        # Aktualizuj auto-fill values w session_state
+        if producent_auto:
+            st.session_state.autofill_drzwi['producent'] = producent
+            st.session_state.autofill_drzwi['producent_auto'] = True
+        elif 'producent_auto' in st.session_state.autofill_drzwi:
+            del st.session_state.autofill_drzwi['producent_auto']
+            
+        if seria_auto:
+            st.session_state.autofill_drzwi['seria'] = seria
+            st.session_state.autofill_drzwi['seria_auto'] = True
+        elif 'seria_auto' in st.session_state.autofill_drzwi:
+            del st.session_state.autofill_drzwi['seria_auto']
+            
+        if typ_auto:
+            st.session_state.autofill_drzwi['typ'] = typ_produktu
+            st.session_state.autofill_drzwi['typ_auto'] = True
+        elif 'typ_auto' in st.session_state.autofill_drzwi:
+            del st.session_state.autofill_drzwi['typ_auto']
+            
+        if okleina_auto:
+            st.session_state.autofill_drzwi['rodzaj_okleiny'] = rodzaj_okleiny
+            st.session_state.autofill_drzwi['okleina_auto'] = True
+        elif 'okleina_auto' in st.session_state.autofill_drzwi:
+            del st.session_state.autofill_drzwi['okleina_auto']
+            
+        if szyby_auto:
+            st.session_state.autofill_drzwi['ilosc_szyb'] = ilosc_szyb
+            st.session_state.autofill_drzwi['szyby_auto'] = True
+        elif 'szyby_auto' in st.session_state.autofill_drzwi:
+            del st.session_state.autofill_drzwi['szyby_auto']
+            
+        if zamek_auto:
+            st.session_state.autofill_drzwi['zamek'] = zamek
+            st.session_state.autofill_drzwi['zamek_auto'] = True
+        elif 'zamek_auto' in st.session_state.autofill_drzwi:
+            del st.session_state.autofill_drzwi['zamek_auto']
+            
+        if szyba_auto:
+            st.session_state.autofill_drzwi['szyba'] = szyba
+            st.session_state.autofill_drzwi['szyba_auto'] = True
+        elif 'szyba_auto' in st.session_state.autofill_drzwi:
+            del st.session_state.autofill_drzwi['szyba_auto']
+            
+        if wentylacja_auto:
+            st.session_state.autofill_drzwi['wentylacja'] = wentylacja
+            st.session_state.autofill_drzwi['wentylacja_auto'] = True
+        elif 'wentylacja_auto' in st.session_state.autofill_drzwi:
+            del st.session_state.autofill_drzwi['wentylacja_auto']
+            
+        if klamka_auto:
+            st.session_state.autofill_drzwi['klamka'] = klamka
+            st.session_state.autofill_drzwi['klamka_auto'] = True
+        elif 'klamka_auto' in st.session_state.autofill_drzwi:
+            del st.session_state.autofill_drzwi['klamka_auto']
+            
+        if wizjer_auto:
+            st.session_state.autofill_drzwi['kolor_wizjera'] = kolor_wizjera
+            st.session_state.autofill_drzwi['wizjer_auto'] = True
+        elif 'wizjer_auto' in st.session_state.autofill_drzwi:
+            del st.session_state.autofill_drzwi['wizjer_auto']
+            
+        if wypelnienie_auto:
+            st.session_state.autofill_drzwi['wypelnienie'] = wypelnienie
+            st.session_state.autofill_drzwi['wypelnienie_auto'] = True
+        elif 'wypelnienie_auto' in st.session_state.autofill_drzwi:
+            del st.session_state.autofill_drzwi['wypelnienie_auto']
+            
+        if okuc_auto:
+            st.session_state.autofill_drzwi['kolor_okuc'] = kolor_okuc
+            st.session_state.autofill_drzwi['okuc_auto'] = True
+        elif 'okuc_auto' in st.session_state.autofill_drzwi:
+            del st.session_state.autofill_drzwi['okuc_auto']
+            
         dane_sprzedawcy = {
             "producent": producent,
             "seria": seria,
@@ -510,8 +654,17 @@ def uzupelnij_formularz_drzwi(db, formularz_data):
             "klamka": klamka,
             "kolor_wizjera": kolor_wizjera,
             "kolor_osc": kolor_osc,
+            "wypelnienie": wypelnienie,
+            "kolor_okuc": kolor_okuc,
             "opcje_dodatkowe": opcje_dodatkowe,
-            "uwagi_klienta": uwagi_klienta
+            "uwagi_klienta": uwagi_klienta,
+            # Edytowane dane techniczne przez sprzedawcę
+            "typ_drzwi": typ_drzwi_edit,
+            "oscieznica": oscieznica_edit,
+            "opaska": opaska_edit,
+            "kat_zaciecia": kat_zaciecia_edit,
+            "prog": prog_edit,
+            "wizjer": wizjer_edit
         }
         
         # Sprawdź wymagane pola
@@ -541,11 +694,6 @@ def uzupelnij_formularz_drzwi(db, formularz_data):
                     with col_pdf1:
                         st.subheader("📄 Pobierz dokumenty")
                         display_pdf_download_button(complete_data, 'drzwi', formularz_data['id'])
-                    
-                    with col_pdf2:
-                        st.subheader("📋 Akcje")
-                        if st.button("📊 Przejdź do przeglądu danych", key="goto_overview_drzwi"):
-                            st.info("💡 Przejdź do strony 'Drzwi' → zakładka 'Przegląd danych'")
                     
                     # Pokaż kompletne dane
                     with st.expander("📄 Kompletne dane zamówienia"):
@@ -635,8 +783,8 @@ def formularz_montera_podlogi():
     st.markdown("---")
     uploaded_files_podlogi = create_image_uploader("podlogi_monter")
     
-    # Przycisk zapisania
-    if st.button("💾 Zapisz pomiary podłóg", type="primary"):
+    # Zapisz do przechowalni
+    if st.button("🗂️ Zapisz do przechowalni", type="primary"):
         dane_pomiary = {
             "pomieszczenie": pomieszczenie,
             "telefon": telefon,
@@ -668,63 +816,26 @@ def formularz_montera_podlogi():
         if brakujace_pola:
             st.error(f"❌ Proszę wypełnić wymagane pola: {', '.join(brakujace_pola)}")
         else:
-            with st.spinner("Zapisywanie pomiarów..."):
-                doc_id, kod_dostepu = save_pomiary_data(db, "podlogi", dane_pomiary, monter_id)
+            with st.spinner("Zapisywanie szkicu do przechowalni..."):
+                draft_id = save_draft_data(db, "podlogi", dane_pomiary, monter_id)
                 
-                if doc_id and kod_dostepu:
+                if draft_id:
                     # Przetwórz i zapisz zdjęcia jeśli zostały przesłane
                     if uploaded_files_podlogi:
                         with st.spinner("Zapisywanie zdjęć..."):
-                            images_data = process_uploaded_images(uploaded_files_podlogi, "podlogi", doc_id)
+                            images_data = process_uploaded_images(uploaded_files_podlogi, "podlogi", draft_id)
                             if images_data:
-                                save_images_to_database(db, "podlogi", doc_id, images_data)
+                                save_images_to_database(db, "szkice", draft_id, images_data)
                                 st.success(f"✅ Zapisano {len(images_data)} zdjęć")
                     
-                    st.success(f"✅ Pomiary zostały zapisane! ID: {doc_id}")
-                    
-                    # Wyświetl kod dostępu i link
-                    st.info(f"🔑 **Kod dostępu dla sprzedawcy:** {kod_dostepu}")
-                    
-                    # Generuj QR kod
-                    link = generate_share_link(doc_id, kod_dostepu, "podlogi")
-                    
-                    col_qr1, col_qr2 = st.columns(2)
-                    
-                    with col_qr1:
-                        st.subheader("📲 QR Code")
-                        qr_code_data = f"KOD:{kod_dostepu}|ID:{doc_id}|TYP:podlogi"
-                        
-                        qr = qrcode.QRCode(version=1, box_size=10, border=5)
-                        qr.add_data(qr_code_data)
-                        qr.make(fit=True)
-                        
-                        qr_img = qr.make_image(fill_color="black", back_color="white")
-                        
-                        # Konwertuj do base64 dla wyświetlenia
-                        buffer = io.BytesIO()
-                        qr_img.save(buffer, format='PNG')
-                        buffer.seek(0)
-                        qr_b64 = base64.b64encode(buffer.getvalue()).decode()
-                        
-                        st.markdown(f'<img src="data:image/png;base64,{qr_b64}" width="200">', unsafe_allow_html=True)
-                        st.caption("Kod do zeskanowania przez sprzedawcę")
-                    
-                    with col_qr2:
-                        st.subheader("📋 Instrukcje")
-                        st.markdown("""
-                        **Przekaż sprzedawcy:**
-                        1. 🔑 Kod dostępu: `{}`
-                        2. 📱 Lub QR kod do zeskanowania
-                        3. 📝 Sprzedawca uzupełni dane produktu
-                        
-                        **Status:** ✅ Pomiary wykonane
-                        """.format(kod_dostepu))
+                    st.success(f"✅ Szkic pomiarów został zapisany do przechowalni! ID: {draft_id}")
+                    st.info("📋 **Szkic można teraz edytować i finalizować w sekcji 'Przechowalnia'**")
                     
                     # Pokaż zapisane dane
-                    with st.expander("Pokaż zapisane pomiary"):
+                    with st.expander("Pokaż zapisany szkic"):
                         st.json(dane_pomiary)
                 else:
-                    st.error("❌ Błąd podczas zapisywania pomiarów!")
+                    st.error("❌ Błąd podczas zapisywania szkicu!")
 
 
 def formularz_montera_drzwi_wejsciowe():
@@ -799,61 +910,7 @@ def formularz_montera_drzwi_wejsciowe():
     st.markdown("---")
     uploaded_files_we = create_image_uploader("drzwi_wejsciowe_monter")
     
-    col_btn1, col_btn2 = st.columns(2)
-    
-    with col_btn1:
-        zapisz_button = st.button("💾 Zapisz pomiary", type="primary")
-    
-    with col_btn2:
-        szkic_button = st.button("🗂️ Zapisz do przechowalni")
-    
-    if zapisz_button:
-        # Przygotuj dane do zapisu
-        dane_formularza = {
-                "numer_strony": numer_strony,
-                "imie_nazwisko": imie_nazwisko,
-                "telefon": telefon,
-                "pomieszczenie": pomieszczenie,
-                "szerokosc_otworu": szerokosc_otworu,
-                "wysokosc_otworu": wysokosc_otworu,
-                "mierzona_od": mierzona_od,
-                "skrot": skrot,
-                "grubosc_muru": grubosc_muru,
-                "stan_sciany": stan_sciany,
-                "oscieznica": oscieznica,
-                "okapnik": okapnik,
-                "prog": prog,
-                "wizjer": wizjer,
-                "elektrozaczep": elektrozaczep,
-                "strona_otwierania": {
-                    "na_zewnatrz": na_zewnatrz,
-                    "do_wewnatrz": do_wewnatrz,
-                    "lewe": lewe,
-                    "prawe": prawe
-                },
-                "uwagi_montera": uwagi_montera
-        }
-        with st.spinner("Zapisywanie pomiarów..."):
-            doc_id, kod_dostepu = save_pomiary_data(db, "drzwi_wejsciowe", dane_formularza, monter_id)
-            
-            if doc_id:
-                # Przetwórz i zapisz zdjęcia jeśli zostały przesłane
-                if uploaded_files_we:
-                    with st.spinner("Zapisywanie zdjęć..."):
-                        images_data = process_uploaded_images(uploaded_files_we, "drzwi_wejsciowe", doc_id)
-                        if images_data:
-                            save_images_to_database(db, "drzwi_wejsciowe", doc_id, images_data)
-                            st.success(f"✅ Zapisano {len(images_data)} zdjęć")
-                
-                st.success("✅ Pomiary zostały zapisane pomyślnie!")
-                st.info(f"🔑 **Kod dostępu dla sprzedawcy:** `{kod_dostepu}`")
-                st.info("📋 Sprzedawca może teraz uzupełnić dane produktu używając tego kodu")
-                
-                # Pokaż zapisane dane
-                with st.expander("📄 Zapisane dane"):
-                    st.json(dane_formularza)
-            else:
-                st.error("❌ Błąd podczas zapisywania pomiarów!")
+    szkic_button = st.button("🗂️ Zapisz do przechowalni", type="primary")
     
     if szkic_button:
         dane_szkicu = {
@@ -963,16 +1020,11 @@ def formularz_sprzedawcy_podlogi():
                     t = unicodedata.normalize('NFKD', t).encode('ascii','ignore').decode('ascii')
                     t = re.sub(r'[^a-zA-Z0-9]+','_',t).strip('_').lower()
                     return t or "nieznany_klient"
-                def _last3_local(phone):
-                    if not phone:
-                        return "000"
-                    d = re.sub(r'\D','', str(phone))
-                    return (d[-3:] if len(d)>=3 else d.zfill(3))
                 dt = f.get('data_pomiary') or f.get('data_utworzenia') or datetime.min
                 day = dt.strftime('%d') if hasattr(dt, 'strftime') else '00'
                 month = dt.strftime('%m') if hasattr(dt, 'strftime') else '00'
                 year = dt.strftime('%Y') if hasattr(dt, 'strftime') else '0000'
-                return f"{_norm_name_local(f.get('imie_nazwisko',''))}_{_last3_local(f.get('telefon',''))}_{day}_{month}_{year}"
+                return f"{_norm_name_local(f.get('imie_nazwisko',''))}_{day}_{month}_{year}"
 
             folders_p = {}
             for f in formularze:
@@ -1036,23 +1088,94 @@ def uzupelnij_formularz_podlogi(db, formularz_data):
     """Formularz uzupełniania danych produktu podłóg"""
     st.subheader("🎯 Uzupełnienie danych produktu - Podłogi")
     
-    # Pokaż podstawowe informacje z pomiarów
-    with st.expander("📋 Informacje z pomiarów (tylko do odczytu)"):
-        col_info1, col_info2 = st.columns(2)
+    # Informacje z pomiarów - część tylko do odczytu i część edytowalna
+    with st.expander("📋 Informacje z pomiarów montera", expanded=True):
+        # Pola TYLKO DO ODCZYTU (niezmienne przez sprzedawcę)
+        st.markdown("**🔒 DANE NIEZMIENNE (z pomiarów montera):**")
+        col_readonly1, col_readonly2 = st.columns(2)
         
-        with col_info1:
-            st.text(f"Pomieszczenie: {formularz_data.get('pomieszczenie', '')}")
-            st.text(f"Telefon: {formularz_data.get('telefon', '')}")
-            st.text(f"System montażu: {formularz_data.get('system_montazu', '')}")
-            st.text(f"Podkład: {formularz_data.get('podklad', '')}")
+        with col_readonly1:
+            st.text(f"🏠 Pomieszczenie: {formularz_data.get('pomieszczenie', '')}")
+            st.text(f"📞 Telefon: {formularz_data.get('telefon', '')}")
+            st.text(f"👷 Monter: {formularz_data.get('monter_id', '')}")
         
-        with col_info2:
-            suma_listw = (formularz_data.get('nw', 0) + formularz_data.get('nz', 0) + 
-                         formularz_data.get('l', 0) + formularz_data.get('zl', 0) + formularz_data.get('zp', 0))
-            st.text(f"Suma listw: {suma_listw}")
-            st.text(f"MDF możliwy: {formularz_data.get('mdf_mozliwy', '')}")
-            st.text(f"Data pomiarów: {formularz_data.get('data_pomiary', datetime.now()).strftime('%Y-%m-%d %H:%M') if formularz_data.get('data_pomiary') else 'Brak'}")
+        with col_readonly2:
+            st.text(f"📅 Data: {formularz_data.get('data_pomiary', datetime.now()).strftime('%Y-%m-%d %H:%M') if formularz_data.get('data_pomiary') else 'Brak'}")
+            st.text(f"🔑 Kod dostępu: {formularz_data.get('kod_dostepu', '')}")
         
+        st.markdown("---")
+        
+        # Pola EDYTOWALNE przez sprzedawcę
+        st.markdown("**✏️ SPECYFIKACJA MONTAŻU DO EDYCJI:**")
+        col_edit1, col_edit2 = st.columns(2)
+        
+        with col_edit1:
+            system_montazu_edit = st.text_input("System montażu:", 
+                                              value=formularz_data.get('system_montazu', ''), 
+                                              key="system_montazu_edit")
+            podklad_edit = st.text_input("Podkład:", 
+                                       value=formularz_data.get('podklad', ''), 
+                                       key="podklad_edit")
+        
+        with col_edit2:
+            mdf_mozliwy_edit = st.text_input("MDF możliwy:", 
+                                           value=formularz_data.get('mdf_mozliwy', ''), 
+                                           key="mdf_mozliwy_edit")
+        
+        st.markdown("**✏️ POMIARY LISTW DO EDYCJI:**")
+        col_listwy1, col_listwy2, col_listwy3 = st.columns(3)
+        
+        with col_listwy1:
+            nw_edit = st.number_input("NW (Narożnik Wewnętrzny):", 
+                                    min_value=0, 
+                                    value=int(formularz_data.get('nw', 0)), 
+                                    key="nw_edit")
+            nz_edit = st.number_input("NZ (Narożnik Zewnętrzny):", 
+                                    min_value=0, 
+                                    value=int(formularz_data.get('nz', 0)), 
+                                    key="nz_edit")
+        
+        with col_listwy2:
+            l_edit = st.number_input("Ł (Łącznik):", 
+                                   min_value=0, 
+                                   value=int(formularz_data.get('l', 0)), 
+                                   key="l_edit")
+            zl_edit = st.number_input("ZL (Zakończenie Lewe):", 
+                                    min_value=0, 
+                                    value=int(formularz_data.get('zl', 0)), 
+                                    key="zl_edit")
+        
+        with col_listwy3:
+            zp_edit = st.number_input("ZP (Zakończenie Prawe):", 
+                                    min_value=0, 
+                                    value=int(formularz_data.get('zp', 0)), 
+                                    key="zp_edit")
+            suma_listw_edit = nw_edit + nz_edit + l_edit + zl_edit + zp_edit
+            st.markdown(f"**SUMA LISTW: {suma_listw_edit} szt.**")
+        
+        st.markdown("**✏️ LISTWY PROGOWE DO EDYCJI:**")
+        col_prog1, col_prog2, col_prog3 = st.columns(3)
+        
+        with col_prog1:
+            listwy_jaka_edit = st.text_input("Jaka:", 
+                                           value=formularz_data.get('listwy_jaka', ''), 
+                                           key="listwy_jaka_edit")
+        
+        with col_prog2:
+            listwy_ile_edit = st.text_input("Ile:", 
+                                          value=formularz_data.get('listwy_ile', ''), 
+                                          key="listwy_ile_edit")
+        
+        with col_prog3:
+            listwy_gdzie_edit = st.text_input("Gdzie:", 
+                                            value=formularz_data.get('listwy_gdzie', ''), 
+                                            key="listwy_gdzie_edit")
+        
+        # Uwagi montera (TYLKO DO ODCZYTU)
+        if formularz_data.get('uwagi_montera'):
+            st.markdown("---")
+            st.markdown("**💬 UWAGI MONTERA (niezmienne):**")
+            st.text_area("", value=formularz_data.get('uwagi_montera', ''), height=80, disabled=True, key="readonly_uwagi_montera_podlogi")
 
     
     # ID sprzedawcy
@@ -1093,7 +1216,19 @@ def uzupelnij_formularz_podlogi(db, formularz_data):
             "kolor": kolor,
             "folia": folia,
             "listwa_przypodlogowa": listwa_przypodlogowa,
-            "uwagi": uwagi
+            "uwagi": uwagi,
+            # Edytowane dane techniczne przez sprzedawcę
+            "system_montazu": system_montazu_edit,
+            "podklad": podklad_edit,
+            "mdf_mozliwy": mdf_mozliwy_edit,
+            "nw": nw_edit,
+            "nz": nz_edit,
+            "l": l_edit,
+            "zl": zl_edit,
+            "zp": zp_edit,
+            "listwy_jaka": listwy_jaka_edit,
+            "listwy_ile": listwy_ile_edit,
+            "listwy_gdzie": listwy_gdzie_edit
         }
         
         # Sprawdź wymagane pola
@@ -1124,11 +1259,6 @@ def uzupelnij_formularz_podlogi(db, formularz_data):
                         st.subheader("📄 Pobierz dokumenty")
                         display_pdf_download_button(complete_data, 'podlogi', formularz_data['id'])
                     
-                    with col_pdf2:
-                        st.subheader("📋 Akcje")
-                        if st.button("📊 Przejdź do przeglądu danych", key="goto_overview_podlogi"):
-                            st.info("💡 Przejdź do strony 'Podłogi' → zakładka 'Przegląd danych'")
-                    
                     # Pokaż kompletne dane
                     with st.expander("📄 Kompletne dane zamówienia"):
                         st.json(complete_data)
@@ -1145,7 +1275,7 @@ def formularz_sprzedawcy_drzwi_wejsciowe():
     # Sposób dostępu do formularza
     sposob_dostepu = st.radio(
         "Wybierz sposób dostępu:",
-        ["🔑 Kod dostępu", "📋 Lista formularzy do uzupełnienia"],
+        ["📋 Lista formularzy do uzupełnienia", "🔑 Kod dostępu"],
         key="sposob_dostepu"
     )
     
@@ -1187,20 +1317,13 @@ def formularz_sprzedawcy_drzwi_wejsciowe():
             t = re.sub(r'[^a-zA-Z0-9]+','_',t).strip('_').lower()
             return t or "nieznany_klient"
 
-        def _last3(phone):
-            import re
-            if not phone:
-                return "000"
-            d = re.sub(r'\D','', str(phone))
-            return (d[-3:] if len(d)>=3 else d.zfill(3))
-
         def _folder_key(f):
             from datetime import datetime
             dt = f.get('data_pomiary') or f.get('data_utworzenia') or datetime.min
             day = dt.strftime('%d') if hasattr(dt, 'strftime') else '00'
             month = dt.strftime('%m') if hasattr(dt, 'strftime') else '00'
             year = dt.strftime('%Y') if hasattr(dt, 'strftime') else '0000'
-            return f"{_norm_name(f.get('imie_nazwisko',''))}_{_last3(f.get('telefon',''))}_{day}_{month}_{year}"
+            return f"{_norm_name(f.get('imie_nazwisko',''))}_{day}_{month}_{year}"
         
         if formularze:
             # Przygotuj dane do wyświetlenia
@@ -1277,20 +1400,92 @@ def uzupelnij_formularz_drzwi_wejsciowe(db, formularz_data):
     """Formularz uzupełniania danych produktu"""
     st.subheader("🎯 Uzupełnienie danych produktu")
     
-    # Pokaż podstawowe informacje z pomiarów
-    with st.expander("📋 Informacje z pomiarów (tylko do odczytu)"):
-        col_info1, col_info2 = st.columns(2)
+    # Pokaż wszystkie informacje z pomiarów
+    with st.expander("📋 Szczegółowe informacje z pomiarów (tylko do odczytu)", expanded=True):
+        # Podstawowe informacje
+        st.markdown("**👤 PODSTAWOWE INFORMACJE:**")
+        col_basic1, col_basic2 = st.columns(2)
         
-        with col_info1:
+        with col_basic1:
+            st.text(f"Numer strony: {formularz_data.get('numer_strony', '')}")
             st.text(f"Pomieszczenie: {formularz_data.get('pomieszczenie', '')}")
             st.text(f"Klient: {formularz_data.get('imie_nazwisko', '')}")
             st.text(f"Telefon: {formularz_data.get('telefon', '')}")
+            st.text(f"Monter: {formularz_data.get('monter_id', '')}")
         
-        with col_info2:
-            st.text(f"Wymiary: {formularz_data.get('szerokosc_otworu', '')} x {formularz_data.get('wysokosc_otworu', '')}")
-            st.text(f"Typ: {formularz_data.get('typ_drzwi', '')}")
-            st.text(f"Data pomiarów: {formularz_data.get('data_pomiary', datetime.now()).strftime('%Y-%m-%d %H:%M') if formularz_data.get('data_pomiary') else 'Brak'}")
+        with col_basic2:
+            st.text(f"📅 Data: {formularz_data.get('data_pomiary', datetime.now()).strftime('%Y-%m-%d %H:%M') if formularz_data.get('data_pomiary') else 'Brak'}")
+            st.text(f"🔑 Kod dostępu: {formularz_data.get('kod_dostepu', '')}")
+            st.text(f"📐 Mierzona od: {formularz_data.get('mierzona_od', '')}")
+            st.text(f"🔍 Skrót: {formularz_data.get('skrot', '')}")
         
+        st.markdown("---")
+        
+        # Pola TYLKO DO ODCZYTU (niezmienne przez sprzedawcę)
+        st.markdown("**🔒 DANE NIEZMIENNE (z pomiarów montera):**")
+        col_readonly1, col_readonly2 = st.columns(2)
+        
+        with col_readonly1:
+            st.text(f"🏠 Pomieszczenie: {formularz_data.get('pomieszczenie', '')}")
+            st.text(f"📏 Szerokość otworu: {formularz_data.get('szerokosc_otworu', '')} cm")
+            st.text(f"📏 Wysokość otworu: {formularz_data.get('wysokosc_otworu', '')} cm")
+            st.text(f"🧱 Grubość muru: {formularz_data.get('grubosc_muru', '')} cm")
+        
+        with col_readonly2:
+            st.text(f"🏗️ Stan ściany: {formularz_data.get('stan_sciany', '')}")
+            st.text(f"👤 Klient: {formularz_data.get('imie_nazwisko', '')}")
+            st.text(f"📞 Telefon: {formularz_data.get('telefon', '')}")
+            st.text(f"👷 Monter: {formularz_data.get('monter_id', '')}")
+        
+        # Strona otwierania (TYLKO DO ODCZYTU)
+        strona_otw = formularz_data.get('strona_otwierania', {}) or {}
+        if any(strona_otw.values()):
+            st.markdown("**🚪 STRONA OTWIERANIA (niezmienne):**")
+            col_dir1, col_dir2 = st.columns(2)
+            
+            with col_dir1:
+                st.markdown("*Kierunek otwierania:*")
+                if strona_otw.get('na_zewnatrz'): st.text("🔒 Na zewnątrz")
+                if strona_otw.get('do_wewnatrz'): st.text("🔒 Do wewnątrz")
+            
+            with col_dir2:
+                st.markdown("*Strona zawiasów:*")
+                if strona_otw.get('lewe'): st.text("🔒 Lewe")
+                if strona_otw.get('prawe'): st.text("🔒 Prawe")
+        
+        # Uwagi montera (TYLKO DO ODCZYTU)
+        if formularz_data.get('uwagi_montera'):
+            st.markdown("---")
+            st.markdown("**💬 UWAGI MONTERA (niezmienne):**")
+            st.text_area("", value=formularz_data.get('uwagi_montera', ''), height=80, disabled=True, key="readonly_uwagi_montera_wejsciowe")
+        
+        st.markdown("---")
+        
+        # Pola EDYTOWALNE przez sprzedawcę
+        st.markdown("**✏️ DANE TECHNICZNE DO EDYCJI:**")
+        col_edit1, col_edit2 = st.columns(2)
+        
+        with col_edit1:
+            oscieznica_edit_we = st.text_input("Ościeżnica:", 
+                                              value=formularz_data.get('oscieznica', ''), 
+                                              key="oscieznica_edit_we")
+            
+            okapnik_edit_we = st.text_input("Okapnik:", 
+                                           value=formularz_data.get('okapnik', ''), 
+                                           key="okapnik_edit_we")
+            
+            prog_edit_we = st.text_input("Próg:", 
+                                        value=formularz_data.get('prog', ''), 
+                                        key="prog_edit_we")
+        
+        with col_edit2:
+            wizjer_edit_we = st.checkbox("Wizjer", 
+                                        value=bool(formularz_data.get('wizjer', False)),
+                                        key="wizjer_edit_we")
+            
+            elektrozaczep_edit_we = st.text_input("Elektrozaczep:", 
+                                                 value=formularz_data.get('elektrozaczep', ''), 
+                                                 key="elektrozaczep_edit_we")
 
     
     # ID sprzedawcy
@@ -1349,7 +1544,13 @@ def uzupelnij_formularz_drzwi_wejsciowe(db, formularz_data):
             "klamka": klamka,
             "dostawka": dostawka,
             "opcje_dodatkowe": opcje_dodatkowe,
-            "uwagi_klienta": uwagi_klienta
+            "uwagi_klienta": uwagi_klienta,
+            # Edytowane dane techniczne przez sprzedawcę
+            "oscieznica": oscieznica_edit_we,
+            "okapnik": okapnik_edit_we,
+            "prog": prog_edit_we,
+            "wizjer": wizjer_edit_we,
+            "elektrozaczep": elektrozaczep_edit_we
         }
         
         # Sprawdź wymagane pola
@@ -1380,11 +1581,6 @@ def uzupelnij_formularz_drzwi_wejsciowe(db, formularz_data):
                         st.subheader("📄 Pobierz dokumenty")
                         display_pdf_download_button(complete_data, 'drzwi_wejsciowe', formularz_data['id'])
                     
-                    with col_pdf2:
-                        st.subheader("📋 Akcje")
-                        if st.button("📊 Przejdź do przeglądu danych", key="goto_overview_drzwi_wejsciowe"):
-                            st.info("💡 Przejdź do strony 'Drzwi wejściowe' → zakładka 'Przegląd danych'")
-                    
                     # Pokaż kompletne dane
                     with st.expander("📄 Kompletne dane zamówienia"):
                         st.json(complete_data)
@@ -1395,8 +1591,8 @@ def uzupelnij_formularz_drzwi_wejsciowe(db, formularz_data):
 
 
 def main():
-    st.set_page_config(page_title="Workflow Monter-Sprzedawca", layout="wide")
-    st.title("🔄 WORKFLOW MONTER-SPRZEDAWCA")
+    st.set_page_config(page_title=" Protokół Pomiaru", layout="wide")
+    st.title("🔄 Protokół Pomiaru")
     
     # Wybór trybu
     tryb = st.sidebar.radio(

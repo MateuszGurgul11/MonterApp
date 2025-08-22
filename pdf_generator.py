@@ -334,6 +334,39 @@ class PDFGenerator:
                 result = result.replace(polish, replacement)
             return result
 
+    def create_signature_section(self, story):
+        """Tworzy sekcję z polami do podpisów"""
+        # Dodaj odstęp przed podpisami
+        story.append(Spacer(1, 8*mm))
+        
+        # Stwórz tabelę z podpisami - lewą i prawą kolumną
+        signature_data = [
+            [
+                Paragraph("Podpis klienta", self.styles['CustomNormal']),
+                Paragraph("Podpis sprzedawcy", self.styles['CustomNormal'])
+            ],
+            [
+                Paragraph("." * 50, self.styles['CustomNormal']),
+                Paragraph("." * 50, self.styles['CustomNormal'])
+            ]
+        ]
+        
+        signature_table = Table(signature_data, colWidths=[8*cm, 8*cm])
+        signature_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), self.font_name),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('TOPPADDING', (0, 1), (-1, 1), 8),  # Więcej miejsca między tekstem a linią
+        ]))
+        
+        story.append(signature_table)
+        story.append(Spacer(1, 5*mm))
+
     def create_header(self, story, title):
         """Tworzy nagłówek dokumentu"""
         # Logo (jeśli istnieje)
@@ -562,7 +595,10 @@ class PDFGenerator:
             "Zamek": data.get('zamek', ''),
             "Szyba": data.get('szyba', ''),
             "Wentylacja": data.get('wentylacja', ''),
-            "Klamka": data.get('klamka', '')
+            "Klamka": data.get('klamka', ''),
+            "Kolor wizjera": data.get('kolor_wizjera', ''),
+            "Wypełnienie": data.get('wypelnienie', ''),
+            "Kolor okucia": data.get('kolor_okuc', '')
         }
         
         # Ułóż podstawowe i produktowe obok siebie
@@ -705,6 +741,9 @@ class PDFGenerator:
             story.append(bottom_row)
             story.append(Spacer(1, 2*mm))
         
+        # Sekcja podpisów
+        self.create_signature_section(story)
+        
         # Stopka
         story.append(Spacer(1, 5*mm))
         footer = Paragraph(
@@ -836,6 +875,9 @@ class PDFGenerator:
             ('RIGHTPADDING', (0, 0), (-1, -1), 10),
         ]))
         story.append(bottom_row)
+        
+        # Sekcja podpisów
+        self.create_signature_section(story)
         
         # Stopka z informacjami o systemie
         story.append(Spacer(1, 5*mm))
@@ -977,6 +1019,9 @@ class PDFGenerator:
             wykonawcy_panel = self.build_info_panel("👥 WYKONAWCY", wykonawcy_info)
             story.append(wykonawcy_panel)
             story.append(Spacer(1, 2*mm))
+        
+        # Sekcja podpisów
+        self.create_signature_section(story)
         
         # Stopka
         story.append(Spacer(1, 5*mm))

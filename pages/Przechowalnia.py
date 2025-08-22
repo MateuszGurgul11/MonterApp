@@ -22,19 +22,39 @@ def page_wymiary():
     ostatecznie zapisane do bazy danych. Możesz je edytować, usunąć lub sfinalizować.
     """)
 
-    # Filtr po monterze
-    colf1, colf2 = st.columns([2, 1])
+    # Filtry
+    colf1, colf2, colf3 = st.columns([2, 2, 1])
     with colf1:
         monter_id = st.text_input("🔑 Filtruj po imieniu montera (opcjonalnie):", value="")
+    
+    # Pobierz wszystkie szkice aby wyciągnąć unikalne pomieszczenia
+    all_drafts = get_drafts_for_monter(db, monter_id if monter_id else None)
+    
     with colf2:
+        # Utwórz listę unikalnych pomieszczeń z liczbą szkiców
+        room_counts = {}
+        for d in all_drafts:
+            room = d.get('pomieszczenie', '')
+            if room:
+                room_counts[room] = room_counts.get(room, 0) + 1
+        
+        unique_rooms = [""] + sorted(room_counts.keys())
+        selected_room = st.selectbox(
+            "🏠 Filtruj po pomieszczeniu:", 
+            options=unique_rooms,
+            format_func=lambda x: f"{x} ({room_counts.get(x, 0)} szkiców)" if x else f"Wszystkie pomieszczenia ({len(all_drafts)} szkiców)"
+        )
+    
+    with colf3:
         if st.button("🔄 Odśwież"):
-            st.experimental_rerun()
-
-    # Pobierz szkice
-    drafts = get_drafts_for_monter(db, monter_id if monter_id else None)
+            st.rerun()
+    # Filtruj szkice według wybranych kryteriów
+    drafts = all_drafts
+    if selected_room:
+        drafts = [d for d in drafts if d.get('pomieszczenie', '') == selected_room]
 
     if not drafts:
-        st.info("📭 Brak zapisanych szkiców")
+        st.info("📭 Brak szkiców dla wybranych filtrów")
         return
 
     # Tabela przeglądowa
@@ -58,8 +78,36 @@ def page_wymiary():
 
     # Wybór szkicu
     st.subheader("✏️ Edycja / Finalizacja szkicu")
+    
+    def format_draft_option(draft_id):
+        if not draft_id:
+            return "Wybierz szkic..."
+        
+        draft = next((d for d in drafts if d['id'] == draft_id), None)
+        if not draft:
+            return draft_id
+            
+        # Formatuj czytelny opis szkicu
+        pomieszczenie = draft.get('pomieszczenie', 'Nieznane')
+        typ = draft.get('collection_target', 'nieznany')
+        klient = draft.get('imie_nazwisko', 'Nieznany klient')
+        created = draft.get('created_at', '')
+        
+        # Formatuj datę jeśli dostępna
+        date_str = ""
+        if created:
+            try:
+                if hasattr(created, 'strftime'):
+                    date_str = created.strftime("%d.%m %H:%M")
+                else:
+                    date_str = str(created)[:16]  # Obetnij długi string
+            except:
+                date_str = ""
+        
+        return f"🏠 {pomieszczenie} | {typ.upper()} | {klient} | {date_str}"
+    
     draft_ids = [d['id'] for d in drafts]
-    selected_id = st.selectbox("Wybierz szkic:", options=[""] + draft_ids, format_func=lambda x: x if x else "Wybierz...")
+    selected_id = st.selectbox("Wybierz szkic:", options=[""] + draft_ids, format_func=format_draft_option)
 
     if selected_id:
         draft = next((d for d in drafts if d['id'] == selected_id), None)
@@ -103,16 +151,26 @@ def page_wymiary():
                 wizjer = st.checkbox("Wizjer", value=bool(draft.get('wizjer', False)))
 
             st.subheader("🚪 Strona otwierania")
-            col_so1, col_so2, col_so3, col_so4 = st.columns(4)
             so = draft.get('strona_otwierania', {}) or {}
-            with col_so1:
-                lewe_przyl = st.checkbox("LEWE przylg.", value=bool(so.get('lewe_przyl', False)))
-            with col_so2:
-                prawe_przyl = st.checkbox("PRAWE przylg.", value=bool(so.get('prawe_przyl', False)))
-            with col_so3:
-                lewe_odwr = st.checkbox("LEWE odwr.", value=bool(so.get('lewe_odwr', False)))
-            with col_so4:
-                prawe_odwr = st.checkbox("PRAWE odwr.", value=bool(so.get('prawe_odwr', False)))
+            
+            # Określ aktualny wybór na podstawie zapisanych danych
+            current_choice = "Nie wybrano"
+            if so.get('lewe_przyl'):
+                current_choice = "LEWE przylgowe"
+            elif so.get('prawe_przyl'):
+                current_choice = "PRAWE przylgowe"
+            elif so.get('lewe_odwr'):
+                current_choice = "LEWE odwrotna przylga"
+            elif so.get('prawe_odwr'):
+                current_choice = "PRAWE odwrotna przylga"
+            
+            strona_otwierania_szkic = st.radio(
+                "Kierunek otwierania drzwi:",
+                ["Nie wybrano", "LEWE przylgowe", "PRAWE przylgowe", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"],
+                index=["Nie wybrano", "LEWE przylgowe", "PRAWE przylgowe", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"].index(current_choice),
+                key=f"strona_otwierania_szkic_{selected_id}",
+                horizontal=True
+            )
 
             st.subheader("📝 Dodatkowe")
             cold1, cold2 = st.columns([2, 1])
@@ -136,6 +194,9 @@ def page_wymiary():
                     szyba = st.text_input("Szyba:", value=draft.get('szyba', ''))
                     wentylacja = st.text_input("Wentylacja:", value=draft.get('wentylacja', ''))
                     klamka = st.text_input("Klamka:", value=draft.get('klamka', ''))
+                    kolor_wizjera = st.text_input("Kolor wizjera:", value=draft.get('kolor_wizjera', ''))
+                    wypelnienie = st.text_input("Wypełnienie:", value=draft.get('wypelnienie', ''))
+                    kolor_okuc = st.text_input("Kolor okucia:", value=draft.get('kolor_okuc', ''))
                     kolor_osc = st.text_input("Kolor ość. (jeśli inna):", value=draft.get('kolor_osc', ''))
                 opcje_dodatkowe = st.text_area("Opcje dodatkowe:", value=draft.get('opcje_dodatkowe', ''), height=80)
                 uwagi_klienta = st.text_area("Uwagi dla klienta:", value=draft.get('uwagi_klienta', ''), height=80)
@@ -157,10 +218,10 @@ def page_wymiary():
                 'prog': prog,
                 'wizjer': wizjer,
                 'strona_otwierania': {
-                    'lewe_przyl': lewe_przyl,
-                    'prawe_przyl': prawe_przyl,
-                    'lewe_odwr': lewe_odwr,
-                    'prawe_odwr': prawe_odwr,
+                    'lewe_przyl': strona_otwierania_szkic == "LEWE przylgowe",
+                    'prawe_przyl': strona_otwierania_szkic == "PRAWE przylgowe",
+                    'lewe_odwr': strona_otwierania_szkic == "LEWE odwrotna przylga",
+                    'prawe_odwr': strona_otwierania_szkic == "PRAWE odwrotna przylga",
                 },
                 'napis_nad_drzwiami': napis_nad_drzwiami,
                 'szerokosc_skrzydla': szerokosc_skrzydla,
@@ -176,6 +237,9 @@ def page_wymiary():
                 'szyba': szyba if 'szyba' in locals() else draft.get('szyba',''),
                 'wentylacja': wentylacja if 'wentylacja' in locals() else draft.get('wentylacja',''),
                 'klamka': klamka if 'klamka' in locals() else draft.get('klamka',''),
+                'kolor_wizjera': kolor_wizjera if 'kolor_wizjera' in locals() else draft.get('kolor_wizjera',''),
+                'wypelnienie': wypelnienie if 'wypelnienie' in locals() else draft.get('wypelnienie',''),
+                'kolor_okuc': kolor_okuc if 'kolor_okuc' in locals() else draft.get('kolor_okuc',''),
                 'kolor_osc': kolor_osc if 'kolor_osc' in locals() else draft.get('kolor_osc',''),
                 'opcje_dodatkowe': opcje_dodatkowe if 'opcje_dodatkowe' in locals() else draft.get('opcje_dodatkowe',''),
                 'uwagi_klienta': uwagi_klienta if 'uwagi_klienta' in locals() else draft.get('uwagi_klienta',''),
@@ -314,12 +378,10 @@ def page_wymiary():
             if st.button("💾 Zapisz zmiany"):
                 if update_draft_data(db, selected_id, updates):
                     st.success("✅ Zapisano zmiany w szkicu")
-                    st.experimental_rerun()
         with col_b:
             if st.button("🗑️ Usuń szkic"):
                 if delete_draft(db, selected_id):
                     st.success("✅ Szkic usunięty")
-                    st.experimental_rerun()
         with col_c:
             if st.button("✅ Finalizuj (zapisz do bazy)", type="primary"):
                 with st.spinner("Finalizowanie szkicu..."):
@@ -327,7 +389,6 @@ def page_wymiary():
                     if doc_id:
                         st.success(f"🎉 Zapisano do bazy. ID: {doc_id} | Kod dostępu: {kod}")
                         st.balloons()
-                        st.experimental_rerun()
                     else:
                         st.error("❌ Nie udało się sfinalizować szkicu")
 
