@@ -224,6 +224,7 @@ class PDFGenerator:
         # Bazowe ścieżki do katalogów ze zdjęciami
         self.door_image_base_dirs = [
             "drzwi_pdf/",
+            "drzwi/",
             "images/drzwi_pdf/",
         ]
         self.door_type_base_dirs = [
@@ -565,6 +566,91 @@ class PDFGenerator:
                     return candidate
         return None
 
+    def create_door_options_row(self, selected_opening):
+        """Tworzy rząd ze wszystkimi opcjami otwierania drzwi i zaznacza wybraną"""
+        
+        # Definicje wszystkich opcji w kolejności
+        door_options = [
+            {
+                'key': 'lewe_przyl',
+                'label': 'LEWE\nprzylgowe',
+                'files': ['lewe_przyl.png', 'lewe_przylgowe.png']
+            },
+            {
+                'key': 'prawe_przyl', 
+                'label': 'PRAWE\nprzylgowe',
+                'files': ['prawe_przyl.png', 'prawe_przylgowe.png']
+            },
+            {
+                'key': 'lewe_odwr',
+                'label': 'LEWE\nodwrotna przylga', 
+                'files': ['lewe_odwr.png', 'lewe_odwrotne.png']
+            },
+            {
+                'key': 'prawe_odwr',
+                'label': 'PRAWE\nodwrotna przylga',
+                'files': ['prawe_odwr.png', 'prawe_odwrotne.png']
+            }
+        ]
+        
+        # Znajdź wybrane opcje
+        selected_keys = [key for key, value in selected_opening.items() if value]
+        
+        # Stwórz obrazki dla każdej opcji
+        option_images = []
+        for option in door_options:
+            # Znajdź obraz dla tej opcji
+            image_path = None
+            for base_dir in self.door_image_base_dirs:
+                for filename in option['files']:
+                    candidate = os.path.join(base_dir, filename)
+                    if os.path.exists(candidate):
+                        image_path = candidate
+                        break
+                if image_path:
+                    break
+            
+            if image_path:
+                # Sprawdź czy ta opcja jest wybrana
+                is_selected = option['key'] in selected_keys
+                
+                # Oznaczenie dla wybranej opcji
+                top_label = "✓ WYBRANE" if is_selected else ""
+                
+                try:
+                    door_image = DoorPhotoWithLabels(
+                        image_path=image_path,
+                        top_label=top_label,
+                        bottom_label=option['label'],
+                        center_width_text=None,
+                        max_width=3 * cm
+                    )
+                    option_images.append(door_image)
+                except Exception:
+                    option_images.append("")  # Pusty element w przypadku błędu
+            else:
+                option_images.append("")  # Brak obrazu
+        
+        # Utwórz tabelę w jednym rzędzie (1x4)
+        if len(option_images) >= 4:
+            row_table = Table([
+                option_images  # Wszystkie 4 opcje w jednym rzędzie
+            ], colWidths=[4*cm, 4*cm, 4*cm, 4*cm])
+            
+            row_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey),
+            ]))
+            
+            return row_table
+        
+        return None
+
     def generate_drzwi_pdf(self, data):
         """Generuje PDF dla zamówienia drzwi"""
         buffer = io.BytesIO()
@@ -662,7 +748,7 @@ class PDFGenerator:
         
         # Ilustracja typu drzwi
         door_type_image = None
-        door_type = data.get('typ_drzwi/przylgowe.png', '')
+        door_type = data.get('typ_drzwi', '')
         if door_type:
             door_type_path = self._find_door_type_image(door_type)
             if door_type_path:
@@ -672,8 +758,7 @@ class PDFGenerator:
                         top_label="TYP DRZWI",
                         bottom_label=self.safe_text(door_type),
                         center_width_text=None,
-                        max_width=2.2 * cm,
-                        show_overlays=True
+                        max_width=2.2 * cm
                     )
                 except Exception:
                     pass
@@ -705,7 +790,16 @@ class PDFGenerator:
             ('RIGHTPADDING', (0, 0), (-1, -1), 5),
         ]))
         story.append(middle_row)
+        story.append(Spacer(1, 5*mm))
+        
+        # Dodaj rząd ze wszystkimi opcjami otwierania drzwi
+        story.append(Paragraph("🚪 OPCJE OTWIERANIA DRZWI", self.styles['CustomSubtitle']))
         story.append(Spacer(1, 3*mm))
+        
+        door_options_row = self.create_door_options_row(strona_otw)
+        if door_options_row:
+            story.append(door_options_row)
+            story.append(Spacer(1, 5*mm))
         
         # Uwagi i wykonawcy w jednym wierszu
         uwagi_info = {}

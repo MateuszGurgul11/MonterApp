@@ -7,10 +7,94 @@ from datetime import datetime
 from firebase_config import (
     setup_database, save_pomiary_data, generate_share_link,
     get_forms_for_completion, complete_form_by_seller, get_form_by_access_code,
-    save_draft_data, create_image_uploader, process_uploaded_images, 
-    save_images_to_database, display_images
+    save_draft_data, display_images
 )
+import os
 from pdf_generator import display_pdf_download_button
+
+def display_door_options_gallery(selected_opening):
+    """Wyświetla galerię wszystkich opcji otwierania drzwi z oznaczeniem wybranej"""
+    
+    # Definicje wszystkich opcji w kolejności
+    door_options = [
+        {
+            'key': 'lewe_przyl',
+            'label': 'LEWE przylgowe',
+            'files': ['lewe_przyl.png', 'lewe_przylgowe.png']
+        },
+        {
+            'key': 'prawe_przyl', 
+            'label': 'PRAWE przylgowe',
+            'files': ['prawe_przyl.png', 'prawe_przylgowe.png']
+        },
+        {
+            'key': 'lewe_odwr',
+            'label': 'LEWE odwrotna przylga', 
+            'files': ['lewe_odwr.png', 'lewe_odwrotne.png']
+        },
+        {
+            'key': 'prawe_odwr',
+            'label': 'PRAWE odwrotna przylga',
+            'files': ['prawe_odwr.png', 'prawe_odwrotne.png']
+        }
+    ]
+    
+    # Katalogi ze zdjęciami
+    image_base_dirs = ["drzwi_pdf/", "drzwi/", "images/drzwi_pdf/"]
+    
+    # Znajdź wybrane opcje
+    selected_keys = [key for key, value in selected_opening.items() if value]
+    
+    st.markdown("**🚪 WSZYSTKIE OPCJE OTWIERANIA:**")
+    
+    # Wyświetl w 4 kolumnach
+    cols = st.columns(4)
+    
+    for i, option in enumerate(door_options):
+        with cols[i]:
+            # Znajdź obraz dla tej opcji
+            image_path = None
+            for base_dir in image_base_dirs:
+                for filename in option['files']:
+                    candidate = os.path.join(base_dir, filename)
+                    if os.path.exists(candidate):
+                        image_path = candidate
+                        break
+                if image_path:
+                    break
+            
+            # Sprawdź czy ta opcja jest wybrana
+            is_selected = option['key'] in selected_keys
+            
+            if image_path:
+                try:
+                    # Wyświetl obrazek
+                    st.image(image_path, caption=option['label'], width=150)
+                    
+                    # Oznacz wybraną opcję
+                    if is_selected:
+                        st.success("✅ WYBRANE")
+                    else:
+                        st.write("")  # Puste miejsce dla wyrównania
+                        
+                except Exception as e:
+                    st.error(f"Błąd: {e}")
+                    st.write(option['label'])
+                    if is_selected:
+                        st.success("✅ WYBRANE")
+            else:
+                # Brak obrazu - tylko tekst
+                st.write(option['label'])
+                if is_selected:
+                    st.success("✅ WYBRANE")
+
+# ZABEZPIECZENIE - sprawdź logowanie przed załadowaniem strony
+if not st.session_state.get('logged_in', False):
+    st.error("🚫 **Dostęp zabroniony** - Wymagane logowanie!")
+    st.markdown("### 👆 [Przejdź do logowania](?)")
+    if st.button("🔙 Powrót do logowania", type="primary"):
+        st.switch_page("main.py")
+    st.stop()
 
 def formularz_montera_drzwi():
     """Formularz pomiarów drzwi dla montera"""
@@ -110,10 +194,10 @@ def formularz_montera_drzwi():
     with col_img1:
         if strona_otwierania == "LEWE przylgowe":
             st.markdown("**✅ LEWE (przylgowe/bezprzylgowe)**")
-            try:
-                st.image("drzwi/lewe_przyl.png", width=150, caption="Lewe przylgowe")
-            except:
-                st.write("🖼️ Obrazek niedostępny")
+        try:
+            st.image("drzwi/lewe_przyl.png", width=150, caption="Lewe przylgowe")
+        except:
+            st.write("🖼️ Obrazek niedostępny")
         else:
             st.markdown("**LEWE (przylgowe/bezprzylgowe)**")
             try:
@@ -124,10 +208,10 @@ def formularz_montera_drzwi():
     with col_img2:
         if strona_otwierania == "PRAWE przylgowe":
             st.markdown("**✅ PRAWE (przylgowe/bezprzylgowe)**")
-            try:
-                st.image("drzwi/prawe_przyl.png", width=150, caption="Prawe przylgowe")
-            except:
-                st.write("🖼️ Obrazek niedostępny")
+        try:
+            st.image("drzwi/prawe_przyl.png", width=150, caption="Prawe przylgowe")
+        except:
+            st.write("🖼️ Obrazek niedostępny")
         else:
             st.markdown("**PRAWE (przylgowe/bezprzylgowe)**")
             try:
@@ -138,10 +222,10 @@ def formularz_montera_drzwi():
     with col_img3:
         if strona_otwierania == "LEWE odwrotna przylga":
             st.markdown("**✅ LEWE (odwrotna przylga)**")
-            try:
-                st.image("drzwi/lewe_odwr.png", width=150, caption="Lewe odwrotne")
-            except:
-                st.write("🖼️ Obrazek niedostępny")
+        try:
+            st.image("drzwi/lewe_odwr.png", width=150, caption="Lewe odwrotne")
+        except:
+            st.write("🖼️ Obrazek niedostępny")
         else:
             st.markdown("**LEWE (odwrotna przylga)**")
             try:
@@ -152,10 +236,10 @@ def formularz_montera_drzwi():
     with col_img4:
         if strona_otwierania == "PRAWE odwrotna przylga":
             st.markdown("**✅ PRAWE (odwrotna przylga)**")
-            try:
-                st.image("drzwi/prawe_odwr.png", width=150, caption="Prawe odwrotne")
-            except:
-                st.write("🖼️ Obrazek niedostępny")
+        try:
+            st.image("drzwi/prawe_odwr.png", width=150, caption="Prawe odwrotne")
+        except:
+            st.write("🖼️ Obrazek niedostępny")
         else:
             st.markdown("**PRAWE (odwrotna przylga)**")
             try:
@@ -173,10 +257,6 @@ def formularz_montera_drzwi():
     st.subheader("📝 Szkic i uwagi")
     norma = st.selectbox("Norma/Szkic:", ["PL", "CZ"], key="norma_monter")
     uwagi_montera = st.text_area("Uwagi montera:", height=100, key="uwagi_montera")
-    
-    # Sekcja zdjęć
-    st.markdown("---")
-    uploaded_files = create_image_uploader("drzwi_monter")
     
     save_draft_clicked = st.button("🗂️ Zapisz do przechowalni", type="primary")
 
@@ -213,7 +293,8 @@ def formularz_montera_drzwi():
         with st.spinner("Zapisywanie szkicu..."):
             draft_id = save_draft_data(db, "drzwi", dane_pomiary, monter_id)
             if draft_id:
-                st.success(f"🗂️ Szkic zapisany (ID: {draft_id}). Możesz wrócić i dokończyć później na stronie 'Wymiary'.")
+                st.success(f"🗂️ Szkic zapisany (ID: {draft_id}). Możesz wrócić i dokończyć później na stronie 'Przechowalnia'.")
+                st.info("📷 **Zdjęcia można dodać w przechowalni po wybraniu szkicu**")
             else:
                 st.error("❌ Nie udało się zapisać szkicu")
 
@@ -331,14 +412,17 @@ def formularz_sprzedawcy_drzwi():
             st.dataframe(df, use_container_width=True, hide_index=True)
 
             # Wybór formularza
-            selected_code = st.selectbox(
-                "Wybierz formularz do uzupełnienia:",
-                options=[""] + [form['kod_dostepu'] for form in filtered_forms],
-                format_func=lambda x: f"Kod: {x}" if x else "Wybierz formularz..."
+            form_options = [""] + [f"🏠 {form['pomieszczenie']} | 👤 {form['imie_nazwisko']} | 🔑 {form['kod_dostepu']}" for form in filtered_forms]
+            selected_display = st.selectbox(
+                "🏠 Wybierz formularz do uzupełnienia:",
+                options=form_options,
+                format_func=lambda x: x if x else "Wybierz formularz..."
             )
             
-            if selected_code:
-                selected_form = next((form for form in formularze if form['kod_dostepu'] == selected_code), None)
+            if selected_display:
+                # Znajdź formularz na podstawie wybranego displayu
+                selected_index = form_options.index(selected_display) - 1  # -1 bo pierwszy element to pusty
+                selected_form = filtered_forms[selected_index]
         else:
             st.info("📭 Brak formularzy oczekujących na uzupełnienie")
     
@@ -386,6 +470,10 @@ def uzupelnij_formularz_drzwi(db, formularz_data):
                 st.text(f"🔒 Otwierane na: {formularz_data.get('napis_nad_drzwiami', '')}")
             if formularz_data.get('szerokosc_skrzydla'):
                 st.text(f"🔒 Szerokość skrzydła: {formularz_data.get('szerokosc_skrzydla', '')} cm")
+                
+            # Wyświetl galerię wszystkich opcji otwierania
+            st.markdown("---")
+            display_door_options_gallery(strona_otw)
         
         # Uwagi montera (TYLKO DO ODCZYTU)
         if formularz_data.get('uwagi_montera'):
@@ -556,7 +644,12 @@ def uzupelnij_formularz_drzwi(db, formularz_data):
         
         kolor_osc = st.checkbox("Inny kolor ościeżnicy")
         if kolor_osc:
-            kolor_osc = st.text_input("Kolor ość. (jeśli inna):", key="kolor_osc_sprzedawca")
+            col_osc1, col_osc2 = st.columns([4, 1])
+            with col_osc1:
+                osc_value = st.session_state.autofill_drzwi.get('kolor_osc', '') if st.session_state.autofill_drzwi.get('osc_auto', False) else ''
+                kolor_osc = st.text_input("Kolor ość. (jeśli inna):", value=osc_value, key="kolor_osc_sprzedawca")
+            with col_osc2:
+                osc_auto = st.checkbox("🔄", value=st.session_state.autofill_drzwi.get('osc_auto', False), key="osc_auto", help="Auto-fill dla następnych protokołów")
     
     st.subheader("➕ Opcje dodatkowe")
     opcje_dodatkowe = st.text_area("", height=100, key="opcje_sprzedawca")
@@ -641,6 +734,13 @@ def uzupelnij_formularz_drzwi(db, formularz_data):
             st.session_state.autofill_drzwi['okuc_auto'] = True
         elif 'okuc_auto' in st.session_state.autofill_drzwi:
             del st.session_state.autofill_drzwi['okuc_auto']
+            
+        # Auto-fill dla koloru ościeżnicy (tylko jeśli checkbox jest zaznaczony)
+        if kolor_osc and 'osc_auto' in locals() and osc_auto:
+            st.session_state.autofill_drzwi['kolor_osc'] = kolor_osc
+            st.session_state.autofill_drzwi['osc_auto'] = True
+        elif 'osc_auto' in st.session_state.autofill_drzwi:
+            del st.session_state.autofill_drzwi['osc_auto']
             
         dane_sprzedawcy = {
             "producent": producent,
@@ -779,10 +879,6 @@ def formularz_montera_podlogi():
     # Ostrzeżenie
     st.warning("⚠️ UWAGA!! Podłoże powinno być suche i równe!!")
     
-    # Sekcja zdjęć
-    st.markdown("---")
-    uploaded_files_podlogi = create_image_uploader("podlogi_monter")
-    
     # Zapisz do przechowalni
     if st.button("🗂️ Zapisz do przechowalni", type="primary"):
         dane_pomiary = {
@@ -820,16 +916,9 @@ def formularz_montera_podlogi():
                 draft_id = save_draft_data(db, "podlogi", dane_pomiary, monter_id)
                 
                 if draft_id:
-                    # Przetwórz i zapisz zdjęcia jeśli zostały przesłane
-                    if uploaded_files_podlogi:
-                        with st.spinner("Zapisywanie zdjęć..."):
-                            images_data = process_uploaded_images(uploaded_files_podlogi, "podlogi", draft_id)
-                            if images_data:
-                                save_images_to_database(db, "szkice", draft_id, images_data)
-                                st.success(f"✅ Zapisano {len(images_data)} zdjęć")
-                    
                     st.success(f"✅ Szkic pomiarów został zapisany do przechowalni! ID: {draft_id}")
                     st.info("📋 **Szkic można teraz edytować i finalizować w sekcji 'Przechowalnia'**")
+                    st.info("📷 **Zdjęcia można dodać w przechowalni po wybraniu szkicu**")
                     
                     # Pokaż zapisane dane
                     with st.expander("Pokaż zapisany szkic"):
@@ -906,10 +995,6 @@ def formularz_montera_drzwi_wejsciowe():
         if prawe:
             st.markdown("*Prawe otwieranie*")
     
-    # Sekcja zdjęć
-    st.markdown("---")
-    uploaded_files_we = create_image_uploader("drzwi_wejsciowe_monter")
-    
     szkic_button = st.button("🗂️ Zapisz do przechowalni", type="primary")
     
     if szkic_button:
@@ -944,7 +1029,8 @@ def formularz_montera_drzwi_wejsciowe():
             
             if success:
                 st.success("📝 Szkic został zapisany w kwarantannie!")
-                st.info("💡 Możesz kontynuować edycję w zakładce 'Wymiary'")
+                st.info("💡 Możesz kontynuować edycję w zakładce 'Przechowalnia'")
+                st.info("📷 **Zdjęcia można dodać w przechowalni po wybraniu szkicu**")
             else:
                 st.error("❌ Błąd podczas zapisywania szkicu!")
 
@@ -1067,15 +1153,18 @@ def formularz_sprzedawcy_podlogi():
             st.dataframe(df, use_container_width=True, hide_index=True)
 
             # Wybór formularza
-            selected_code = st.selectbox(
-                "Wybierz formularz do uzupełnienia:",
-                options=[""] + [form['kod_dostepu'] for form in filtered_forms_p],
-                format_func=lambda x: f"Kod: {x}" if x else "Wybierz formularz...",
+            form_options_p = [""] + [f"🏠 {form['pomieszczenie']} | 👤 {form['imie_nazwisko']} | 📅 {form['data_pomiaru']} | 🔑 {form['kod_dostepu']}" for form in filtered_forms_p]
+            selected_display = st.selectbox(
+                "🏠 Wybierz formularz do uzupełnienia:",
+                options=form_options_p,
+                format_func=lambda x: x if x else "Wybierz formularz...",
                 key="select_form_podlogi"
             )
             
-            if selected_code:
-                selected_form = next((form for form in formularze if form['kod_dostepu'] == selected_code), None)
+            if selected_display:
+                # Znajdź formularz na podstawie wybranego displayu
+                selected_index = form_options_p.index(selected_display) - 1  # -1 bo pierwszy element to pusty
+                selected_form = filtered_forms_p[selected_index]
         else:
             st.info("📭 Brak formularzy oczekujących na uzupełnienie")
     
@@ -1380,14 +1469,18 @@ def formularz_sprzedawcy_drzwi_wejsciowe():
             st.dataframe(df, use_container_width=True, hide_index=True)
 
             # Wybór formularza
-            selected_code = st.selectbox(
-                "Wybierz formularz do uzupełnienia:",
-                options=[""] + [form['kod_dostepu'] for form in filtered_forms],
-                format_func=lambda x: f"Kod: {x}" if x else "Wybierz formularz..."
+            form_options_dw = [""] + [f"🏠 {form['pomieszczenie']} | 👤 {form['imie_nazwisko']} | 📅 {form['data_pomiaru']} | 🔑 {form['kod_dostepu']}" for form in filtered_forms]
+            selected_display = st.selectbox(
+                "🏠 Wybierz formularz do uzupełnienia:",
+                options=form_options_dw,
+                format_func=lambda x: x if x else "Wybierz formularz...",
+                key="select_form_drzwi_wejsciowe"
             )
             
-            if selected_code:
-                selected_form = next((form for form in formularze if form['kod_dostepu'] == selected_code), None)
+            if selected_display:
+                # Znajdź formularz na podstawie wybranego displayu
+                selected_index = form_options_dw.index(selected_display) - 1  # -1 bo pierwszy element to pusty
+                selected_form = filtered_forms[selected_index]
         else:
             st.info("📭 Brak formularzy oczekujących na uzupełnienie")
     

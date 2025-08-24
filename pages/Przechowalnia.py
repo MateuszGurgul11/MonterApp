@@ -8,7 +8,111 @@ from firebase_config import (
     update_draft_data,
     delete_draft,
     finalize_draft,
+    display_images_with_edit,
+    add_images_to_draft,
+    update_draft_images,
+    create_image_uploader,
+    process_uploaded_images,
 )
+
+# ZABEZPIECZENIE - sprawdź logowanie przed załadowaniem strony
+if not st.session_state.get('logged_in', False):
+    st.error("🚫 **Dostęp zabroniony** - Wymagane logowanie!")
+    st.markdown("### 👆 [Przejdź do logowania](?)")
+    if st.button("🔙 Powrót do logowania", type="primary"):
+        st.switch_page("main.py")
+    st.stop()
+
+
+def finalize_all_drafts(db, drafts):
+    """Masowo finalizuje wszystkie szkice z listy"""
+    if not drafts:
+        st.warning("⚠️ Brak szkiców do finalizacji")
+        return
+    
+    success_count = 0
+    error_count = 0
+    results = []
+    
+    # Progress bar
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    total_drafts = len(drafts)
+    
+    for i, draft in enumerate(drafts):
+        draft_id = draft.get('id')
+        if not draft_id:
+            error_count += 1
+            continue
+            
+        # Aktualizuj progress
+        progress = (i + 1) / total_drafts
+        progress_bar.progress(progress)
+        status_text.text(f"Przetwarzanie szkicu {i+1}/{total_drafts}...")
+        
+        try:
+            # Finalizuj szkic
+            doc_id, kod = finalize_draft(db, draft_id)
+            if doc_id:
+                success_count += 1
+                results.append({
+                    'draft_id': draft_id,
+                    'doc_id': doc_id,
+                    'kod': kod,
+                    'status': 'success',
+                    'typ': draft.get('collection_target', ''),
+                    'klient': draft.get('imie_nazwisko', ''),
+                    'pomieszczenie': draft.get('pomieszczenie', '')
+                })
+            else:
+                error_count += 1
+                results.append({
+                    'draft_id': draft_id,
+                    'status': 'error',
+                    'typ': draft.get('collection_target', ''),
+                    'klient': draft.get('imie_nazwisko', ''),
+                    'pomieszczenie': draft.get('pomieszczenie', '')
+                })
+        except Exception as e:
+            error_count += 1
+            results.append({
+                'draft_id': draft_id,
+                'status': 'error',
+                'error': str(e),
+                'typ': draft.get('collection_target', ''),
+                'klient': draft.get('imie_nazwisko', ''),
+                'pomieszczenie': draft.get('pomieszczenie', '')
+            })
+    
+    # Ukryj progress bar
+    progress_bar.empty()
+    status_text.empty()
+    
+    # Pokaż wyniki
+    if success_count > 0:
+        st.success(f"🎉 **Sukces!** Sfinalizowano {success_count} szkic(ów)")
+        if success_count == total_drafts:
+            st.balloons()
+    
+    if error_count > 0:
+        st.error(f"❌ **Błędy:** {error_count} szkic(ów) nie zostało sfinalizowanych")
+    
+    # Szczegółowe wyniki
+    with st.expander(f"📋 Szczegóły operacji ({len(results)} szkiców)", expanded=error_count > 0):
+        for result in results:
+            if result['status'] == 'success':
+                st.success(f"✅ **{result['typ']}** - {result['klient']} ({result['pomieszczenie']}) "
+                          f"→ ID: {result['doc_id']} | Kod: {result['kod']}")
+            else:
+                error_msg = result.get('error', 'Nieznany błąd')
+                st.error(f"❌ **{result['typ']}** - {result['klient']} ({result['pomieszczenie']}) "
+                        f"→ Błąd: {error_msg}")
+    
+    # Odśwież stronę po operacji
+    if success_count > 0:
+        st.info("🔄 Odświeżanie strony...")
+        st.rerun()
 
 
 def page_wymiary():
@@ -48,6 +152,7 @@ def page_wymiary():
     with colf3:
         if st.button("🔄 Odśwież"):
             st.rerun()
+    
     # Filtruj szkice według wybranych kryteriów
     drafts = all_drafts
     if selected_room:
@@ -56,19 +161,58 @@ def page_wymiary():
     if not drafts:
         st.info("📭 Brak szkiców dla wybranych filtrów")
         return
+    
+    # Sekcja masowej finalizacji
+    st.markdown("---")
+    st.markdown("### 🚀 Akcje masowe")
+    
+    col_mass1, col_mass2, col_mass3 = st.columns([2, 2, 2])
+    
+    with col_mass1:
+        st.metric("📊 Szkice do finalizacji", len(drafts))
+    
+    with col_mass2:
+        if st.button("📚 FINALIZUJ WSZYSTKIE SZKICE", type="primary", help="Finalizuje wszystkie widoczne szkice"):
+            st.session_state.show_mass_confirm = True
+    
+    with col_mass3:
+        if len(drafts) > 0:
+            # Policz typy szkiców
+            drzwi_count = len([d for d in drafts if d.get('collection_target') == 'drzwi'])
+            wejsciowe_count = len([d for d in drafts if d.get('collection_target') == 'drzwi_wejsciowe'])
+            podlogi_count = len([d for d in drafts if d.get('collection_target') == 'podlogi'])
+            st.info(f"📝 Drzwi: {drzwi_count} | Wejściowe: {wejsciowe_count} | Podłogi: {podlogi_count}")
+    
+    # Potwierdzenie masowej operacji
+    if st.session_state.get('show_mass_confirm', False):
+        st.warning(f"⚠️ **UWAGA!** Czy na pewno chcesz sfinalizować **{len(drafts)} szkic(ów)**?")
+        st.warning("📝 Ta operacja przeniesie wszystkie szkice do gotowych protokołów i usunie je z przechowalni.")
+        
+        col_confirm1, col_confirm2 = st.columns(2)
+        with col_confirm1:
+            if st.button("✅ TAK - FINALIZUJ WSZYSTKIE", type="primary"):
+                finalize_all_drafts(db, drafts)
+                st.session_state.show_mass_confirm = False
+                st.rerun()
+        with col_confirm2:
+            if st.button("❌ ANULUJ"):
+                st.session_state.show_mass_confirm = False
+                st.rerun()
+    
+    st.markdown("---")
 
     # Tabela przeglądowa
     display_rows = []
     for d in drafts:
         display_rows.append({
-            "ID": d.get('id', ''),
+            "Klient": d.get('imie_nazwisko', ''),
+            "Pomieszczenie": d.get('pomieszczenie', ''),
             "Typ": d.get('collection_target', ''),
             "Monter": d.get('monter_id', ''),
-            "Klient": d.get('imie_nazwisko', ''),
             "Telefon": d.get('telefon', ''),
-            "Pomieszczenie": d.get('pomieszczenie', ''),
             "Utworzono": d.get('created_at', ''),
             "Aktualizowano": d.get('updated_at', ''),
+            "ID": d.get('id', ''),
             "Status": d.get('status', ''),
         })
 
@@ -110,9 +254,17 @@ def page_wymiary():
     selected_id = st.selectbox("Wybierz szkic:", options=[""] + draft_ids, format_func=format_draft_option)
 
     if selected_id:
-        draft = next((d for d in drafts if d['id'] == selected_id), None)
-        if not draft:
-            st.error("❌ Nie znaleziono szkicu")
+        # Pobierz najświeższe dane szkicu z bazy danych
+        try:
+            fresh_draft_doc = db.collection('wymiary_draft').document(selected_id).get()
+            if not fresh_draft_doc.exists:
+                st.error("❌ Nie znaleziono szkicu")
+                return
+            draft = fresh_draft_doc.to_dict()
+            draft['id'] = fresh_draft_doc.id
+
+        except Exception as e:
+            st.error(f"❌ Błąd podczas pobierania szkicu: {e}")
             return
 
         st.markdown("---")
@@ -372,6 +524,64 @@ def page_wymiary():
                 'listwy_gdzie': listwy_gdzie,
                 'uwagi_montera': uwagi_montera,
             }
+
+        # ========================
+        # ZARZĄDZANIE ZDJĘCIAMI
+        # ========================
+        st.markdown("---")
+        
+        existing_images = draft.get('zdjecia', [])
+        
+        if existing_images:
+            remaining_images = display_images_with_edit(existing_images, selected_id, max_width=250)
+            
+            if len(remaining_images) != len(existing_images):
+                if update_draft_images(db, selected_id, remaining_images):
+                    st.success(f"✅ Zaktualizowano zdjęcia w szkicu (pozostało: {len(remaining_images)})")
+                    if len(remaining_images) == 0:
+                        st.info("📷 Wszystkie zdjęcia zostały usunięte ze szkicu")
+                    st.rerun() 
+                else:
+                    st.error("❌ Błąd podczas aktualizacji zdjęć")
+        else:
+            st.info("📷 Ten szkic nie zawiera jeszcze żadnych zdjęć")
+        
+        # Formularz dodawania nowych zdjęć
+        st.markdown("#### ➕ Dodaj nowe zdjęcia")
+        
+        with st.expander("📷 Dodaj zdjęcia do szkicu", expanded=False):
+            new_uploaded_files = create_image_uploader(f"draft_edit_{selected_id}", max_files=5)
+            
+            if new_uploaded_files:
+                col_upload1, col_upload2 = st.columns([2, 1])
+                
+                with col_upload1:
+                    st.write(f"**Wybrano {len(new_uploaded_files)} nowych zdjęć:**")
+                    for file in new_uploaded_files:
+                        st.write(f"• {file.name} ({file.size/1024:.1f} KB)")
+                
+                with col_upload2:
+                    if st.button("📤 Dodaj do szkicu", type="primary", key=f"add_images_{selected_id}"):
+                        with st.spinner("Przetwarzanie i dodawanie zdjęć..."):
+                            # Przetwórz nowe zdjęcia
+                            new_images_data = process_uploaded_images(
+                                new_uploaded_files, 
+                                draft.get('collection_target', 'szkic'), 
+                                selected_id
+                            )
+                            
+                            if new_images_data:
+                                # Dodaj do szkicu
+                                if add_images_to_draft(db, selected_id, new_images_data):
+                                    st.success(f"✅ Dodano {len(new_images_data)} nowych zdjęć do szkicu!")
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Błąd podczas dodawania zdjęć do szkicu")
+                            else:
+                                st.error("❌ Nie udało się przetworzyć zdjęć")
+
+        st.markdown("---")
+        st.subheader("⚙️ Akcje na szkicu")
 
         col_a, col_b, col_c = st.columns(3)
         with col_a:

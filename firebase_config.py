@@ -455,7 +455,7 @@ def get_form_by_access_code(db, collection_name, kod_dostepu):
     Pobiera formularz na podstawie kodu dostępu
     """
     try:
-        docs = db.collection(collection_name).where('kod_dostepu', '==', kod_dostepu).limit(1).get()
+        docs = db.collection(collection_name).where(filter=firestore.FieldFilter('kod_dostepu', '==', kod_dostepu)).limit(1).get()
         
         if docs:
             doc = docs[0]
@@ -476,7 +476,7 @@ def get_forms_for_completion(db, collection_name):
     """
     try:
         # Najpierw pobierz wszystkie dokumenty gdzie monter wypełnił
-        docs = db.collection(collection_name).where('wypelnil_monter', '==', True).get()
+        docs = db.collection(collection_name).where(filter=firestore.FieldFilter('wypelnil_monter', '==', True)).get()
         
         forms_list = []
         for doc in docs:
@@ -493,6 +493,38 @@ def get_forms_for_completion(db, collection_name):
     except Exception as e:
         st.error(f"Błąd podczas pobierania formularzy do uzupełnienia: {e}")
         return []
+
+def get_document_by_id(db, collection_name, doc_id):
+    """
+    Pobiera pojedynczy dokument z bazy danych po ID
+    """
+    try:
+        doc_ref = db.collection(collection_name).document(doc_id)
+        doc = doc_ref.get()
+        
+        if doc.exists:
+            data = doc.to_dict()
+            data['id'] = doc.id
+            return data
+        else:
+            return None
+            
+    except Exception as e:
+        st.error(f"Błąd podczas pobierania dokumentu: {e}")
+        return None
+
+def update_document(db, collection_name, doc_id, updated_data):
+    """
+    Aktualizuje dokument w bazie danych
+    """
+    try:
+        doc_ref = db.collection(collection_name).document(doc_id)
+        doc_ref.update(updated_data)
+        return True
+        
+    except Exception as e:
+        st.error(f"Błąd podczas aktualizacji dokumentu: {e}")
+        return False
 
 # =====================
 # Kwarantanna (Szkice)
@@ -536,7 +568,7 @@ def get_drafts_for_monter(db, monter_id=None):
     try:
         ref = db.collection('wymiary_draft')
         if monter_id:
-            query = ref.where('monter_id', '==', monter_id)
+            query = ref.where(filter=firestore.FieldFilter('monter_id', '==', monter_id))
         else:
             query = ref
         docs = query.order_by('updated_at', direction=firestore.Query.DESCENDING).get()
@@ -777,6 +809,106 @@ def process_uploaded_images(uploaded_files, folder_name, doc_id):
                 })
                 
     return images_data
+
+def display_images_with_edit(images_data, draft_id, max_width=300):
+    """
+    Wyświetla zdjęcia z możliwością usuwania (dla przechowalni)
+    """
+    if not images_data:
+        st.info("📷 Brak zdjęć dla tego szkicu")
+        return images_data
+        
+    st.subheader("📸 Zdjęcia w szkicu")
+    
+    # Sprawdź czy jakieś zdjęcie zostało zaznaczone do usunięcia
+    images_to_delete = []
+    
+    # Wyświetl zdjęcia w kolumnach
+    cols_per_row = 3
+    for i in range(0, len(images_data), cols_per_row):
+        cols = st.columns(cols_per_row)
+        
+        for j in range(cols_per_row):
+            idx = i + j
+            if idx < len(images_data):
+                img_data = images_data[idx]
+                with cols[j]:
+                    try:
+                        # Dekoduj base64
+                        img_bytes = base64.b64decode(img_data['data'])
+                        
+                        # Wyświetl zdjęcie
+                        st.image(img_bytes, caption=img_data.get('nazwa', f'Zdjęcie {idx+1}'), width=max_width)
+                        
+                        # Pokaż informacje o zdjęciu
+                        if 'data_dodania' in img_data:
+                            try:
+                                if hasattr(img_data['data_dodania'], 'strftime'):
+                                    date_str = img_data['data_dodania'].strftime('%Y-%m-%d %H:%M')
+                                else:
+                                    date_str = str(img_data['data_dodania'])
+                                st.caption(f"Dodano: {date_str}")
+                            except:
+                                st.caption("Dodano: nieznana data")
+                        
+                        # Przycisk usuwania
+                        if st.button(f"🗑️ Usuń", key=f"delete_img_{draft_id}_{idx}", help=f"Usuń zdjęcie: {img_data.get('nazwa', f'Zdjęcie {idx+1}')}"):
+                            images_to_delete.append(idx)
+                            
+                    except Exception as e:
+                        st.error(f"❌ Błąd wyświetlania zdjęcia {idx+1}: {e}")
+    
+    # Jeśli jakieś zdjęcie zostało zaznaczone do usunięcia
+    if images_to_delete:
+        # Utwórz nową listę bez usuniętych zdjęć
+        images_to_keep = [img for i, img in enumerate(images_data) if i not in images_to_delete]
+        return images_to_keep
+    
+    # Jeśli nic nie zostało usunięte, zwróć oryginalne dane
+    return images_data
+
+def add_images_to_draft(db, draft_id, new_images_data):
+    """
+    Dodaje nowe zdjęcia do istniejącego szkicu
+    """
+    try:
+        # Pobierz obecne dane szkicu
+        draft_doc = db.collection('wymiary_draft').document(draft_id).get()
+        if not draft_doc.exists:
+            st.error("❌ Szkic nie istnieje")
+            return False
+            
+        draft_data = draft_doc.to_dict()
+        existing_images = draft_data.get('zdjecia', [])
+        
+        # Dodaj nowe zdjęcia do istniejących
+        all_images = existing_images + new_images_data
+        
+        # Aktualizuj szkic
+        db.collection('wymiary_draft').document(draft_id).update({
+            'zdjecia': all_images,
+            'data_aktualizacji_zdjec': datetime.now(),
+            'updated_at': datetime.now()
+        })
+        return True
+    except Exception as e:
+        st.error(f"❌ Błąd podczas dodawania zdjęć: {e}")
+        return False
+
+def update_draft_images(db, draft_id, images_data):
+    """
+    Aktualizuje zdjęcia w szkicu (używane przy usuwaniu)
+    """
+    try:
+        db.collection('wymiary_draft').document(draft_id).update({
+            'zdjecia': images_data,
+            'data_aktualizacji_zdjec': datetime.now(),
+            'updated_at': datetime.now()
+        })
+        return True
+    except Exception as e:
+        st.error(f"❌ Błąd podczas aktualizacji zdjęć: {e}")
+        return False
 
 # Funkcja inicjalizacyjna do wywołania przy starcie aplikacji
 @st.cache_resource
