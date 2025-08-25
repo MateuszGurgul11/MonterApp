@@ -179,7 +179,6 @@ def formularz_montera_drzwi():
     
     # Strona otwierania
     st.subheader("🚪 Strona otwierania")
-    col5, col6, col7, col8 = st.columns(4)
     
     strona_otwierania = st.radio(
         "Kierunek otwierania drzwi:",
@@ -188,64 +187,47 @@ def formularz_montera_drzwi():
         horizontal=True
     )
     
-    # Pokaż odpowiedni obrazek dla wybranej opcji
     col_img1, col_img2, col_img3, col_img4 = st.columns(4)
     
     with col_img1:
         if strona_otwierania == "LEWE przylgowe":
             st.markdown("**✅ LEWE (przylgowe/bezprzylgowe)**")
+        else:
+            st.markdown("**LEWE (przylgowe/bezprzylgowe)**")
         try:
             st.image("drzwi/lewe_przyl.png", width=150, caption="Lewe przylgowe")
         except:
             st.write("🖼️ Obrazek niedostępny")
-        else:
-            st.markdown("**LEWE (przylgowe/bezprzylgowe)**")
-            try:
-                st.image("drzwi/lewe_przyl.png", width=150, caption="Lewe przylgowe", use_container_width=False)
-            except:
-                st.write("🖼️ Obrazek niedostępny")
     
     with col_img2:
         if strona_otwierania == "PRAWE przylgowe":
             st.markdown("**✅ PRAWE (przylgowe/bezprzylgowe)**")
+        else:
+            st.markdown("**PRAWE (przylgowe/bezprzylgowe)**")
         try:
             st.image("drzwi/prawe_przyl.png", width=150, caption="Prawe przylgowe")
         except:
             st.write("🖼️ Obrazek niedostępny")
-        else:
-            st.markdown("**PRAWE (przylgowe/bezprzylgowe)**")
-            try:
-                st.image("drzwi/prawe_przyl.png", width=150, caption="Prawe przylgowe", use_container_width=False)
-            except:
-                st.write("🖼️ Obrazek niedostępny")
     
     with col_img3:
         if strona_otwierania == "LEWE odwrotna przylga":
             st.markdown("**✅ LEWE (odwrotna przylga)**")
+        else:
+            st.markdown("**LEWE (odwrotna przylga)**")
         try:
             st.image("drzwi/lewe_odwr.png", width=150, caption="Lewe odwrotne")
         except:
             st.write("🖼️ Obrazek niedostępny")
-        else:
-            st.markdown("**LEWE (odwrotna przylga)**")
-            try:
-                st.image("drzwi/lewe_odwr.png", width=150, caption="Lewe odwrotne", use_container_width=False)
-            except:
-                st.write("🖼️ Obrazek niedostępny")
     
     with col_img4:
         if strona_otwierania == "PRAWE odwrotna przylga":
             st.markdown("**✅ PRAWE (odwrotna przylga)**")
+        else:
+            st.markdown("**PRAWE (odwrotna przylga)**")
         try:
             st.image("drzwi/prawe_odwr.png", width=150, caption="Prawe odwrotne")
         except:
             st.write("🖼️ Obrazek niedostępny")
-        else:
-            st.markdown("**PRAWE (odwrotna przylga)**")
-            try:
-                st.image("drzwi/prawe_odwr.png", width=150, caption="Prawe odwrotne", use_container_width=False)
-            except:
-                st.write("🖼️ Obrazek niedostępny")
     # Dodatkowe opisy przy ilustracji oraz szerokość
     col_top, col_mid = st.columns([2, 1])
     with col_top:

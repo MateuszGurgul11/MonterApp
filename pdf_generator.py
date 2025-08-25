@@ -335,8 +335,64 @@ class PDFGenerator:
                 result = result.replace(polish, replacement)
             return result
 
-    def create_signature_section(self, story):
-        """Tworzy sekcję z polami do podpisów"""
+    def generate_full_product_name(self, data):
+        """Generuje pełną nazwę produktu z dostępnych pól danych"""
+        # Lista pól do użycia w pełnej nazwie w odpowiedniej kolejności
+        fields = []
+        
+        # Seria
+        if data.get('seria'):
+            fields.append(data.get('seria'))
+            
+        # Typ
+        if data.get('typ'):
+            fields.append(data.get('typ'))
+            
+        # Szerokość otworu (z 'P' na końcu jeśli jest wartość)
+        szerokosc = data.get('szerokosc_otworu', '')
+        if szerokosc:
+            fields.append(f"{szerokosc}P")
+            
+        # Strona otwierania - sprawdź które pole jest zaznaczone
+        strona_otw = data.get('strona_otwierania', {})
+        if strona_otw.get('lewe_przyl'):
+            fields.append("lewe przylgowe")
+        elif strona_otw.get('prawe_przyl'):
+            fields.append("prawe przylgowe")
+        elif strona_otw.get('lewe_odwr'):
+            fields.append("lewe odwrotna przylga")
+        elif strona_otw.get('prawe_odwr'):
+            fields.append("prawe odwrotna przylga")
+            
+        # Rodzaj okleiny
+        if data.get('rodzaj_okleiny'):
+            fields.append(data.get('rodzaj_okleiny'))
+            
+        # Zamek  
+        if data.get('zamek'):
+            fields.append(data.get('zamek'))
+            
+        # Szyba
+        if data.get('szyba'):
+            fields.append(data.get('szyba'))
+            
+        # Wentylacja
+        if data.get('wentylacja'):
+            fields.append(data.get('wentylacja'))
+            
+        # Wypełnienie
+        if data.get('wypelnienie'):
+            fields.append(data.get('wypelnienie'))
+            
+        # Kolor okucia
+        if data.get('kolor_okuc'):
+            fields.append(data.get('kolor_okuc'))
+        
+        # Połącz wszystkie pola przecinkami i spacjami
+        return ', '.join(fields) if fields else ''
+
+    def create_signature_section(self, story, full_product_name=None):
+        """Tworzy sekcję z polami do podpisów i opcjonalnie pełną nazwą produktu"""
         # Dodaj odstęp przed podpisami
         story.append(Spacer(1, 8*mm))
         
@@ -367,6 +423,16 @@ class PDFGenerator:
         
         story.append(signature_table)
         story.append(Spacer(1, 5*mm))
+        
+        # Dodaj pełną nazwę produktu jeśli została podana
+        if full_product_name:
+            story.append(Spacer(1, 3*mm))
+            full_name_para = Paragraph(
+                f"<b>Nazwa pełna:</b> {self.safe_text(full_product_name)}",
+                self.styles['CustomNormal']
+            )
+            story.append(full_name_para)
+            story.append(Spacer(1, 2*mm))
 
     def create_header(self, story, title):
         """Tworzy nagłówek dokumentu"""
@@ -566,29 +632,29 @@ class PDFGenerator:
                     return candidate
         return None
 
-    def create_door_options_row(self, selected_opening):
-        """Tworzy rząd ze wszystkimi opcjami otwierania drzwi i zaznacza wybraną"""
+    def create_door_options_row(self, selected_opening, szerokosc_otworu=None, dodatkowe_info=None, pomieszczenie=None):
+        """Tworzy rząd ze wszystkimi opcjami otwierania drzwi i zaznacza wybraną z uproszczonymi etykietami"""
         
         # Definicje wszystkich opcji w kolejności
         door_options = [
             {
                 'key': 'lewe_przyl',
-                'label': 'LEWE\nprzylgowe',
+                'label': 'LEWE przylgowe',
                 'files': ['lewe_przyl.png', 'lewe_przylgowe.png']
             },
             {
                 'key': 'prawe_przyl', 
-                'label': 'PRAWE\nprzylgowe',
+                'label': 'PRAWE przylgowe',
                 'files': ['prawe_przyl.png', 'prawe_przylgowe.png']
             },
             {
                 'key': 'lewe_odwr',
-                'label': 'LEWE\nodwrotna przylga', 
+                'label': 'LEWE odwrotna przylga', 
                 'files': ['lewe_odwr.png', 'lewe_odwrotne.png']
             },
             {
                 'key': 'prawe_odwr',
-                'label': 'PRAWE\nodwrotna przylga',
+                'label': 'PRAWE odwrotna przylga',
                 'files': ['prawe_odwr.png', 'prawe_odwrotne.png']
             }
         ]
@@ -613,16 +679,34 @@ class PDFGenerator:
             if image_path:
                 # Sprawdź czy ta opcja jest wybrana
                 is_selected = option['key'] in selected_keys
-                
-                # Oznaczenie dla wybranej opcji
-                top_label = "✓ WYBRANE" if is_selected else ""
+
+                if is_selected:
+                    if pomieszczenie:
+                        top_label = f"Wybrane" + "\n" + pomieszczenie
+                    else:
+                        top_label = "Wybrane"
+                        
+                    # Środek: szerokość jako cyfra
+                    if szerokosc_otworu:
+                        # Wyciągnij tylko cyfrę ze stringa "XX cm"
+                        szerokosc_cyfra = szerokosc_otworu.replace(" cm", "").replace("cm", "").strip()
+                        center_width_text = szerokosc_cyfra
+                    else:
+                        center_width_text = None
+                        
+                    # Dół: pełna nazwa opcji
+                    bottom_label_selected = self.safe_text(option['label'])
+                else:
+                    top_label = ""
+                    center_width_text = None
+                    bottom_label_selected = self.safe_text(option['label'])
                 
                 try:
                     door_image = DoorPhotoWithLabels(
                         image_path=image_path,
                         top_label=top_label,
-                        bottom_label=option['label'],
-                        center_width_text=None,
+                        bottom_label=bottom_label_selected,
+                        center_width_text=center_width_text,
                         max_width=3 * cm
                     )
                     option_images.append(door_image)
@@ -635,7 +719,7 @@ class PDFGenerator:
         if len(option_images) >= 4:
             row_table = Table([
                 option_images  # Wszystkie 4 opcje w jednym rzędzie
-            ], colWidths=[4*cm, 4*cm, 4*cm, 4*cm])
+            ], colWidths=[4.25*cm, 4.25*cm, 4.25*cm, 4.25*cm])
             
             row_table.setStyle(TableStyle([
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -731,78 +815,40 @@ class PDFGenerator:
         story.append(side_by_side)
         story.append(Spacer(1, 3*mm))
         
-        # Strona otwierania
+        # Dodaj opcje otwierania drzwi pod tabelkami
         strona_otw = data.get('strona_otwierania', {})
-        strony_txt = []
-        if strona_otw.get('lewe_przyl'): strony_txt.append("Lewe przylgowe")
-        if strona_otw.get('prawe_przyl'): strony_txt.append("Prawe przylgowe")
-        if strona_otw.get('lewe_odwr'): strony_txt.append("Lewe odwrotna przylga")
-        if strona_otw.get('prawe_odwr'): strony_txt.append("Prawe odwrotna przylga")
+        szerokosc = data.get('szerokosc_otworu', '')
+        szerokosc_text = f"{szerokosc} cm" if szerokosc else None
         
-        strona_info = {
-            "Strona otwierania": ", ".join(strony_txt) if strony_txt else "Nie wybrano"
-        }
-        
-        # Układamy w 3 kolumny: strona otwierania + typ drzwi + zdjęcie kierunku
-        strona_panel = self.build_info_panel("🚪 STRONA OTWIERANIA", strona_info)
-        
-        # Ilustracja typu drzwi
-        door_type_image = None
-        door_type = data.get('typ_drzwi', '')
-        if door_type:
-            door_type_path = self._find_door_type_image(door_type)
-            if door_type_path:
-                try:
-                    door_type_image = DoorPhotoWithLabels(
-                        image_path=door_type_path,
-                        top_label="TYP DRZWI",
-                        bottom_label=self.safe_text(door_type),
-                        center_width_text=None,
-                        max_width=2.2 * cm
-                    )
-                except Exception:
-                    pass
-        
-        # Ilustracja strony otwierania
-        opening_image = None
-        if any(strona_otw.values()):
-            try:
-                selected_key, image_path = self._find_door_image_helper(strona_otw)
-                if image_path:
-                    opening_image = DoorPhotoWithLabels(
-                        image_path=image_path,
-                        top_label=self.safe_text(data.get('napis_nad_drzwiami')),
-                        bottom_label=self.safe_text(data.get('napis_pod_drzwiami')),
-                        center_width_text=self.safe_text(data.get('szerokosc_skrzydla')),
-                        max_width=2.2 * cm,
-                    )
-            except Exception:
-                pass
-        
-        # Tabela 3-kolumnowa
-        middle_row = Table([
-            [strona_panel, door_type_image or "", opening_image or ""]
-        ], colWidths=[5.5*cm, 5.25*cm, 5.25*cm])
-            
-        middle_row.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-        ]))
-        story.append(middle_row)
-        story.append(Spacer(1, 5*mm))
-        
-        # Dodaj rząd ze wszystkimi opcjami otwierania drzwi
+        # Dodaj nagłówek sekcji
         story.append(Paragraph("🚪 OPCJE OTWIERANIA DRZWI", self.styles['CustomSubtitle']))
         story.append(Spacer(1, 3*mm))
         
-        door_options_row = self.create_door_options_row(strona_otw)
+        # Wyświetl tabelkę z wszystkimi opcjami drzwi
+        # Określ opis kierunku otwierania dla wybranej opcji
+        kierunek_opis = None
+        if strona_otw.get('lewe_przyl'):
+            kierunek_opis = "Otwierane na lewo (przylgowe)"
+        elif strona_otw.get('prawe_przyl'):
+            kierunek_opis = "Otwierane na prawo (przylgowe)"
+        elif strona_otw.get('lewe_odwr'):
+            kierunek_opis = "Otwierane na lewo (odwrotna przylga)"
+        elif strona_otw.get('prawe_odwr'):
+            kierunek_opis = "Otwierane na prawo (odwrotna przylga)"
+        
+        # Pobierz nazwę pomieszczenia
+        pomieszczenie = data.get('pomieszczenie', '')
+        
+        door_options_row = self.create_door_options_row(strona_otw, szerokosc_text, kierunek_opis, pomieszczenie)
         if door_options_row:
             story.append(door_options_row)
             story.append(Spacer(1, 5*mm))
         
+        
         # Uwagi i wykonawcy w jednym wierszu
         uwagi_info = {}
+        if data.get('typ_drzwi'):
+            uwagi_info["Typ drzwi"] = data.get('typ_drzwi')
         if data.get('opcje_dodatkowe'):
             uwagi_info["Opcje dodatkowe"] = data.get('opcje_dodatkowe')
         if data.get('uwagi_montera'):
@@ -819,8 +865,6 @@ class PDFGenerator:
             wykonawcy_info["Sprzedawca"] = data.get('sprzedawca_id')
         if data.get('data_sprzedaz'):
             wykonawcy_info["Data sprzedaży"] = data.get('data_sprzedaz').strftime("%d.%m.%Y %H:%M")
-        if data.get('status'):
-            wykonawcy_info["Status"] = data.get('status').upper()
         
         if uwagi_info or wykonawcy_info:
             uwagi_panel = self.build_info_panel("💬 UWAGI I OPCJE", uwagi_info) if uwagi_info else ""
@@ -836,7 +880,8 @@ class PDFGenerator:
             story.append(Spacer(1, 2*mm))
         
         # Sekcja podpisów
-        self.create_signature_section(story)
+        full_product_name = self.generate_full_product_name(data)
+        self.create_signature_section(story, full_product_name)
         
         # Stopka
         story.append(Spacer(1, 5*mm))
@@ -971,7 +1016,8 @@ class PDFGenerator:
         story.append(bottom_row)
         
         # Sekcja podpisów
-        self.create_signature_section(story)
+        full_product_name = self.generate_full_product_name(data)
+        self.create_signature_section(story, full_product_name)
         
         # Stopka z informacjami o systemie
         story.append(Spacer(1, 5*mm))
@@ -1115,7 +1161,8 @@ class PDFGenerator:
             story.append(Spacer(1, 2*mm))
         
         # Sekcja podpisów
-        self.create_signature_section(story)
+        full_product_name = self.generate_full_product_name(data)
+        self.create_signature_section(story, full_product_name)
         
         # Stopka
         story.append(Spacer(1, 5*mm))
@@ -1132,16 +1179,6 @@ class PDFGenerator:
         return buffer
 
 def generate_pdf_for_order(data, order_type):
-    """
-    Główna funkcja do generowania PDF
-    
-    Args:
-        data: słownik z danymi zamówienia
-        order_type: 'drzwi', 'drzwi_wejsciowe' lub 'podlogi'
-    
-    Returns:
-        buffer z PDF
-    """
     generator = PDFGenerator()
     
     if order_type == 'drzwi':
@@ -1154,29 +1191,11 @@ def generate_pdf_for_order(data, order_type):
         raise ValueError("order_type must be 'drzwi', 'drzwi_wejsciowe' or 'podlogi'")
 
 def create_download_link(pdf_buffer, filename):
-    """
-    Tworzy link do pobrania PDF w Streamlit
-    
-    Args:
-        pdf_buffer: buffer z PDF
-        filename: nazwa pliku
-    
-    Returns:
-        tuple (base64_pdf, filename)
-    """
     pdf_buffer.seek(0)
     b64_pdf = base64.b64encode(pdf_buffer.read()).decode()
     return b64_pdf, filename
 
 def display_pdf_download_button(data, order_type, doc_id):
-    """
-    Wyświetla przycisk pobierania PDF w Streamlit
-    
-    Args:
-        data: dane zamówienia
-        order_type: typ zamówienia ('drzwi', 'drzwi_wejsciowe' lub 'podlogi')
-        doc_id: ID dokumentu
-    """
     try:
         # Generuj PDF
         pdf_buffer = generate_pdf_for_order(data, order_type)

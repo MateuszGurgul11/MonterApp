@@ -25,7 +25,7 @@ def initialize_firebase():
         
         # Metoda 1: Streamlit secrets 
         if has_secrets:
-            st.info("🔧 Inicjalizacja Firebase ze Streamlit secrets")
+            # st.info("🔧 Inicjalizacja Firebase ze Streamlit secrets")
             firebase_creds = dict(st.secrets["firebase_admin"])
             cred = credentials.Certificate(firebase_creds)
             firebase_admin.initialize_app(cred)
@@ -36,7 +36,7 @@ def initialize_firebase():
             credentials_file = "marbabud-firebase-adminsdk-fbsvc-b4355b7a63.json"
             
             if os.path.exists(credentials_file):
-                st.info(f"🔧 Inicjalizacja Firebase z pliku: {credentials_file}")
+                # st.info(f"🔧 Inicjalizacja Firebase z pliku: {credentials_file}")
                 cred = credentials.Certificate(credentials_file)
                 firebase_admin.initialize_app(cred)
                 db = firestore.client()
@@ -45,7 +45,7 @@ def initialize_firebase():
                 try:
                     # Sprawdź czy można się połączyć
                     collections = list(db.collections())
-                    st.success("✅ Połączenie z Firebase Firestore nawiązane")
+                    # st.success("✅ Połączenie z Firebase Firestore nawiązane")
                     return db
                 except Exception as test_error:
                     st.error(f"❌ Problemy z połączeniem Firestore: {test_error}")
