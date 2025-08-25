@@ -340,45 +340,51 @@ class PDFGenerator:
         # Lista pól do użycia w pełnej nazwie w odpowiedniej kolejności
         fields = []
         
-        # Seria
-        if data.get('seria'):
-            fields.append(data.get('seria'))
-            
         # Typ
         if data.get('typ'):
             fields.append(data.get('typ'))
             
-        # Szerokość otworu (z 'P' na końcu jeśli jest wartość)
-        szerokosc = data.get('szerokosc_otworu', '')
-        if szerokosc:
-            fields.append(f"{szerokosc}P")
+        # Szerokość skrzydła
+        szerokosc_skrzydla = data.get('szerokosc_skrzydla', '')
+        if szerokosc_skrzydla:
+            fields.append(szerokosc_skrzydla)
             
-        # Strona otwierania - sprawdź które pole jest zaznaczone
+        # Kierunek i typ drzwi
         strona_otw = data.get('strona_otwierania', {})
+        typ_drzwi = data.get('typ_drzwi', '')
+        kierunek_typ = ""
+        
         if strona_otw.get('lewe_przyl'):
-            fields.append("lewe przylgowe")
+            kierunek_typ = "lewe"
         elif strona_otw.get('prawe_przyl'):
-            fields.append("prawe przylgowe")
+            kierunek_typ = "prawe"
         elif strona_otw.get('lewe_odwr'):
-            fields.append("lewe odwrotna przylga")
+            kierunek_typ = "lewe"
         elif strona_otw.get('prawe_odwr'):
-            fields.append("prawe odwrotna przylga")
+            kierunek_typ = "prawe"
+            
+        if kierunek_typ and typ_drzwi:
+            fields.append(f"{kierunek_typ}_{typ_drzwi}")
+        elif kierunek_typ:
+            fields.append(kierunek_typ)
+        elif typ_drzwi:
+            fields.append(typ_drzwi)
             
         # Rodzaj okleiny
         if data.get('rodzaj_okleiny'):
             fields.append(data.get('rodzaj_okleiny'))
             
-        # Zamek  
+        # Zamek z cudzysłowami
         if data.get('zamek'):
-            fields.append(data.get('zamek'))
+            fields.append(f'Zamek:{data.get("zamek")}')
             
-        # Szyba
+        # Szyba z cudzysłowami
         if data.get('szyba'):
-            fields.append(data.get('szyba'))
+            fields.append(f'Szyba:{data.get("szyba")}')
             
-        # Wentylacja
+        # Wentylacja z cudzysłowami
         if data.get('wentylacja'):
-            fields.append(data.get('wentylacja'))
+            fields.append(f'Wentylacja:{data.get("wentylacja")}')
             
         # Wypełnienie
         if data.get('wypelnienie'):
@@ -435,21 +441,6 @@ class PDFGenerator:
             story.append(Spacer(1, 2*mm))
 
     def create_header(self, story, title):
-        """Tworzy nagłówek dokumentu"""
-        # Logo (jeśli istnieje)
-        try:
-            logo_path = "images/Logo.png"
-            img = Image(logo_path, width=4*cm, height=2*cm)
-            img.hAlign = 'CENTER'
-            story.append(img)
-            story.append(Spacer(1, 3*mm))
-        except:
-            # Jeśli logo nie istnieje, użyj tekstu
-            company_name = Paragraph("DOMOWNIK", self.styles['CustomTitle'])
-            story.append(company_name)
-            story.append(Spacer(1, 5*mm))
-        
-        # Tytuł dokumentu
         title_para = Paragraph(self.safe_text(title), self.styles['CustomTitle'])
         story.append(title_para)
         story.append(Spacer(1, 2*mm))
@@ -736,7 +727,6 @@ class PDFGenerator:
         return None
 
     def generate_drzwi_pdf(self, data):
-        """Generuje PDF dla zamówienia drzwi"""
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm, 
                               topMargin=1*cm, bottomMargin=1*cm)
@@ -749,7 +739,7 @@ class PDFGenerator:
         # Informacje podstawowe i dane produktu obok siebie
         basic_info = {
             "Pomieszczenie": data.get('pomieszczenie', ''),
-            "Nazwisko klienta": data.get('nazwisko', ''),
+            "Nazwisko klienta": data.get('imie_nazwisko', ''),
             "Telefon": data.get('telefon', ''),
             "Data utworzenia": data.get('data_utworzenia', datetime.now()).strftime("%d.%m.%Y %H:%M") if data.get('data_utworzenia') else '',
             "ID dokumentu": data.get('id', '')

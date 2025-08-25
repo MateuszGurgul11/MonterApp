@@ -19,12 +19,12 @@ def display_door_options_gallery(selected_opening):
     door_options = [
         {
             'key': 'lewe_przyl',
-            'label': 'LEWE przylgowe',
+            'label': 'LEWE',
             'files': ['lewe_przyl.png', 'lewe_przylgowe.png']
         },
         {
             'key': 'prawe_przyl', 
-            'label': 'PRAWE przylgowe',
+            'label': 'PRAWE',
             'files': ['prawe_przyl.png', 'prawe_przylgowe.png']
         },
         {
@@ -182,7 +182,7 @@ def formularz_montera_drzwi():
     
     strona_otwierania = st.radio(
         "Kierunek otwierania drzwi:",
-        ["Nie wybrano", "LEWE przylgowe", "PRAWE przylgowe", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"],
+        ["Nie wybrano", "LEWE", "PRAWE", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"],
         key="strona_otwierania_monter",
         horizontal=True
     )
@@ -190,22 +190,22 @@ def formularz_montera_drzwi():
     col_img1, col_img2, col_img3, col_img4 = st.columns(4)
     
     with col_img1:
-        if strona_otwierania == "LEWE przylgowe":
+        if strona_otwierania == "LEWE":
             st.markdown("**✅ LEWE (przylgowe/bezprzylgowe)**")
         else:
             st.markdown("**LEWE (przylgowe/bezprzylgowe)**")
         try:
-            st.image("drzwi/lewe_przyl.png", width=150, caption="Lewe przylgowe")
+            st.image("drzwi/lewe_przyl.png", width=150)
         except:
             st.write("🖼️ Obrazek niedostępny")
     
     with col_img2:
-        if strona_otwierania == "PRAWE przylgowe":
+        if strona_otwierania == "PRAWE":
             st.markdown("**✅ PRAWE (przylgowe/bezprzylgowe)**")
         else:
             st.markdown("**PRAWE (przylgowe/bezprzylgowe)**")
         try:
-            st.image("drzwi/prawe_przyl.png", width=150, caption="Prawe przylgowe")
+            st.image("drzwi/prawe_przyl.png", width=150)
         except:
             st.write("🖼️ Obrazek niedostępny")
     
@@ -215,7 +215,7 @@ def formularz_montera_drzwi():
         else:
             st.markdown("**LEWE (odwrotna przylga)**")
         try:
-            st.image("drzwi/lewe_odwr.png", width=150, caption="Lewe odwrotne")
+            st.image("drzwi/lewe_odwr.png", width=150)
         except:
             st.write("🖼️ Obrazek niedostępny")
     
@@ -225,7 +225,7 @@ def formularz_montera_drzwi():
         else:
             st.markdown("**PRAWE (odwrotna przylga)**")
         try:
-            st.image("drzwi/prawe_odwr.png", width=150, caption="Prawe odwrotne")
+            st.image("drzwi/prawe_odwr.png", width=150)
         except:
             st.write("🖼️ Obrazek niedostępny")
     # Dodatkowe opisy przy ilustracji oraz szerokość
@@ -442,8 +442,8 @@ def uzupelnij_formularz_drzwi(db, formularz_data):
         if any(strona_otw.values()):
             st.markdown("**🚪 STRONA OTWIERANIA (niezmienne):**")
             strony_txt = []
-            if strona_otw.get('lewe_przyl'): strony_txt.append("Lewe przylgowe")
-            if strona_otw.get('prawe_przyl'): strony_txt.append("Prawe przylgowe")
+            if strona_otw.get('lewe_przyl'): strony_txt.append("Lewe")
+            if strona_otw.get('prawe_przyl'): strony_txt.append("Prawe")
             if strona_otw.get('lewe_odwr'): strony_txt.append("Lewe odwrotna przylga")
             if strona_otw.get('prawe_odwr'): strony_txt.append("Prawe odwrotna przylga")
             st.text(f"🔒 Kierunek: {', '.join(strony_txt)}")

@@ -213,29 +213,17 @@ def page_foldery():
             df = pd.DataFrame(rows)
             st.dataframe(df, hide_index=True, use_container_width=True)
 
-            # Wybór akcji dla protokołu
-            col_action1, col_action2 = st.columns(2)
-            with col_action1:
-                sel_action = st.selectbox(
-                    "Wybierz akcję:",
-                    options=["", "📋 Wyświetl pełny protokół", "🔍 Podgląd JSON (Testy)"],
-                    key=f"sel_action_{folder_name}"
-                )
+            # Wybór protokołu do wyświetlenia
+            # Utwórz opcje wyboru z pomieszczeniem i typem dla czytelności
+            protocol_options = ["Wybierz protokół..."] + [f"{r['Pomieszczenie']} ({r['Typ']}) - {r['ID'][:8]}..." for r in rows]
+            sel_protocol_idx = st.selectbox(
+                "Wybierz protokół:",
+                options=range(len(protocol_options)),
+                format_func=lambda x: protocol_options[x],
+                key=f"sel_protocol_{folder_name}"
+            )
             
-            with col_action2:
-                if sel_action in ["📋 Wyświetl pełny protokół", "🔍 Podgląd JSON (Testy)"]:
-                    # Utwórz opcje wyboru z pomieszczeniem i typem dla czytelności
-                    protocol_options = ["Wybierz protokół..."] + [f"{r['Pomieszczenie']} ({r['Typ']}) - {r['ID'][:8]}..." for r in rows]
-                    sel_protocol_idx = st.selectbox(
-                        "Wybierz protokół:",
-                        options=range(len(protocol_options)),
-                        format_func=lambda x: protocol_options[x],
-                        key=f"sel_protocol_{folder_name}"
-                    )
-                else:
-                    sel_protocol_idx = 0
-            
-            if sel_action == "📋 Wyświetl pełny protokół" and sel_protocol_idx > 0:
+            if sel_protocol_idx > 0:
                 # Znajdź odpowiedni rekord na podstawie indeksu (odjęty o 1 przez "Wybierz protokół...")
                 rec_idx = sel_protocol_idx - 1
                 if 0 <= rec_idx < len(rows):
@@ -244,15 +232,6 @@ def page_foldery():
                     if rec:
                         st.markdown("---")
                         display_full_protocol(db, rec, folder_name)
-            
-            elif sel_action == "🔍 Podgląd JSON (Testy)" and sel_protocol_idx > 0:
-                # Znajdź odpowiedni rekord na podstawie indeksu (odjęty o 1 przez "Wybierz protokół...")
-                rec_idx = sel_protocol_idx - 1
-                if 0 <= rec_idx < len(rows):
-                    selected_id = rows[rec_idx]["ID"]
-                    rec = next((x for x in items if x.get('id') == selected_id), None)
-                    if rec:
-                        st.json(rec)
 
 
 def display_full_protocol(db, record, folder_name):
@@ -344,9 +323,9 @@ def display_drzwi_protocol(db, data, doc_id):
         # Określ obecny wybór dla radio buttons
         current_selection = "Nie wybrano"
         if strona_otw.get('lewe_przyl'):
-            current_selection = "LEWE przylgowe"
+            current_selection = "LEWE"
         elif strona_otw.get('prawe_przyl'):
-            current_selection = "PRAWE przylgowe"
+            current_selection = "PRAWE"
         elif strona_otw.get('lewe_odwr'):
             current_selection = "LEWE odwrotna przylga"
         elif strona_otw.get('prawe_odwr'):
@@ -355,8 +334,8 @@ def display_drzwi_protocol(db, data, doc_id):
         # Radio buttons ułożone poziomo
         strona_otwierania_radio = st.radio(
             "Kierunek otwierania drzwi:",
-            ["Nie wybrano", "LEWE przylgowe", "PRAWE przylgowe", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"],
-            index=["Nie wybrano", "LEWE przylgowe", "PRAWE przylgowe", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"].index(current_selection),
+            ["Nie wybrano", "LEWE", "PRAWE", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"],
+            index=["Nie wybrano", "LEWE", "PRAWE", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"].index(current_selection),
             horizontal=True,
             key=f"strona_otwierania_radio_{key_suffix}"
         )
@@ -370,7 +349,7 @@ def display_drzwi_protocol(db, data, doc_id):
             else:
                 st.markdown("**LEWE (przylgowe/bezprzylgowe)**")
             try:
-                st.image("drzwi/lewe_przyl.png", width=150, caption="Lewe przylgowe",use_container_width=False)
+                st.image("drzwi/lewe_przyl.png", width=150 ,use_container_width=False)
             except:
                 st.write("🖼️ Obrazek niedostępny")
         
@@ -380,7 +359,7 @@ def display_drzwi_protocol(db, data, doc_id):
             else:
                 st.markdown("**PRAWE (przylgowe/bezprzylgowe)**")
             try:
-                st.image("drzwi/prawe_przyl.png", width=150, caption="Prawe przylgowe",use_container_width=False)
+                st.image("drzwi/prawe_przyl.png", width=150,use_container_width=False)
             except:
                 st.write("🖼️ Obrazek niedostępny")
         
@@ -390,7 +369,7 @@ def display_drzwi_protocol(db, data, doc_id):
             else:
                 st.markdown("**LEWE (odwrotna przylga)**")
             try:
-                st.image("drzwi/lewe_odwr.png", width=150, caption="Lewe odwrotne",use_container_width=False)
+                st.image("drzwi/lewe_odwr.png", width=150,use_container_width=False)
             except:
                 st.write("🖼️ Obrazek niedostępny")
         
@@ -400,7 +379,7 @@ def display_drzwi_protocol(db, data, doc_id):
             else:
                 st.markdown("**PRAWE (odwrotna przylga)**")
             try:
-                st.image("drzwi/prawe_odwr.png", width=150, caption="Prawe odwrotne",use_container_width=False)
+                st.image("drzwi/prawe_odwr.png", width=150,use_container_width=False)
             except:
                 st.write("🖼️ Obrazek niedostępny")
         

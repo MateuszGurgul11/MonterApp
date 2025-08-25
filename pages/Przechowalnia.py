@@ -25,9 +25,8 @@ if not st.session_state.get('logged_in', False):
 
 
 def finalize_all_drafts(db, drafts):
-    """Masowo finalizuje wszystkie szkice z listy"""
     if not drafts:
-        st.warning("⚠️ Brak szkiców do finalizacji")
+        st.warning("⚠️ Brak protokołów do finalizacji")
         return
     
     success_count = 0
@@ -49,7 +48,7 @@ def finalize_all_drafts(db, drafts):
         # Aktualizuj progress
         progress = (i + 1) / total_drafts
         progress_bar.progress(progress)
-        status_text.text(f"Przetwarzanie szkicu {i+1}/{total_drafts}...")
+        status_text.text(f"Przetwarzanie protokołu {i+1}/{total_drafts}...")
         
         try:
             # Finalizuj szkic
@@ -91,15 +90,15 @@ def finalize_all_drafts(db, drafts):
     
     # Pokaż wyniki
     if success_count > 0:
-        st.success(f"🎉 **Sukces!** Sfinalizowano {success_count} szkic(ów)")
+        st.success(f"🎉 **Sukces!** Sfinalizowano {success_count} protokół(y)")
         if success_count == total_drafts:
             st.balloons()
     
     if error_count > 0:
-        st.error(f"❌ **Błędy:** {error_count} szkic(ów) nie zostało sfinalizowanych")
+        st.error(f"❌ **Błędy:** {error_count} protokół(y) nie zostało sfinalizowanych")
     
     # Szczegółowe wyniki
-    with st.expander(f"📋 Szczegóły operacji ({len(results)} szkiców)", expanded=error_count > 0):
+    with st.expander(f"📋 Szczegóły operacji ({len(results)} protokółów)", expanded=error_count > 0):
         for result in results:
             if result['status'] == 'success':
                 st.success(f"✅ **{result['typ']}** - {result['klient']} ({result['pomieszczenie']}) "
@@ -122,7 +121,7 @@ def page_wymiary():
     db = setup_database()
 
     st.markdown("""
-    Na tej stronie znajdują się szkice pomiarów zapisane przez montera, które nie zostały jeszcze
+    Na tej stronie znajdują się protokoły pomiarów zapisane przez montera, które nie zostały jeszcze
     ostatecznie zapisane do bazy danych. Możesz je edytować, usunąć lub sfinalizować.
     """)
 
@@ -131,11 +130,11 @@ def page_wymiary():
     with colf1:
         monter_id = st.text_input("🔑 Filtruj po imieniu montera (opcjonalnie):", value="")
     
-    # Pobierz wszystkie szkice aby wyciągnąć unikalne pomieszczenia
+    # Pobierz wszystkie protokoły aby wyciągnąć unikalne pomieszczenia
     all_drafts = get_drafts_for_monter(db, monter_id if monter_id else None)
     
     with colf2:
-        # Utwórz listę unikalnych pomieszczeń z liczbą szkiców
+        # Utwórz listę unikalnych pomieszczeń z liczbą protokołów
         room_counts = {}
         for d in all_drafts:
             room = d.get('pomieszczenie', '')
@@ -146,20 +145,20 @@ def page_wymiary():
         selected_room = st.selectbox(
             "🏠 Filtruj po pomieszczeniu:", 
             options=unique_rooms,
-            format_func=lambda x: f"{x} ({room_counts.get(x, 0)} szkiców)" if x else f"Wszystkie pomieszczenia ({len(all_drafts)} szkiców)"
+            format_func=lambda x: f"{x} ({room_counts.get(x, 0)} protokołów)" if x else f"Wszystkie pomieszczenia ({len(all_drafts)} protokołów)"
         )
     
     with colf3:
         if st.button("🔄 Odśwież"):
             st.rerun()
     
-    # Filtruj szkice według wybranych kryteriów
+    # Filtruj protokoły według wybranych kryteriów
     drafts = all_drafts
     if selected_room:
         drafts = [d for d in drafts if d.get('pomieszczenie', '') == selected_room]
 
     if not drafts:
-        st.info("📭 Brak szkiców dla wybranych filtrów")
+        st.info("📭 Brak protokołów dla wybranych filtrów")
         return
     
     # Sekcja masowej finalizacji
@@ -169,15 +168,15 @@ def page_wymiary():
     col_mass1, col_mass2, col_mass3 = st.columns([2, 2, 2])
     
     with col_mass1:
-        st.metric("📊 Szkice do finalizacji", len(drafts))
+        st.metric("📊 Protokoły do finalizacji", len(drafts))
     
     with col_mass2:
-        if st.button("📚 FINALIZUJ WSZYSTKIE SZKICE", type="primary", help="Finalizuje wszystkie widoczne szkice"):
+        if st.button("📚 FINALIZUJ WSZYSTKIE PROTOKOŁY", type="primary", help="Finalizuje wszystkie widoczne protokoły"):
             st.session_state.show_mass_confirm = True
     
     with col_mass3:
         if len(drafts) > 0:
-            # Policz typy szkiców
+            # Policz typy protokołów
             drzwi_count = len([d for d in drafts if d.get('collection_target') == 'drzwi'])
             wejsciowe_count = len([d for d in drafts if d.get('collection_target') == 'drzwi_wejsciowe'])
             podlogi_count = len([d for d in drafts if d.get('collection_target') == 'podlogi'])
@@ -185,8 +184,8 @@ def page_wymiary():
     
     # Potwierdzenie masowej operacji
     if st.session_state.get('show_mass_confirm', False):
-        st.warning(f"⚠️ **UWAGA!** Czy na pewno chcesz sfinalizować **{len(drafts)} szkic(ów)**?")
-        st.warning("📝 Ta operacja przeniesie wszystkie szkice do gotowych protokołów i usunie je z przechowalni.")
+        st.warning(f"⚠️ **UWAGA!** Czy na pewno chcesz sfinalizować **{len(drafts)} protokół(y)**?")
+        st.warning("📝 Ta operacja przeniesie wszystkie protokoły do gotowych protokołów i usunie je z przechowalni.")
         
         col_confirm1, col_confirm2 = st.columns(2)
         with col_confirm1:
@@ -216,22 +215,22 @@ def page_wymiary():
             "Status": d.get('status', ''),
         })
 
-    st.subheader("📋 Lista szkiców")
+    st.subheader("📋 Lista protokołów")
     df = pd.DataFrame(display_rows)
     st.dataframe(df, use_container_width=True, hide_index=True)
 
-    # Wybór szkicu
-    st.subheader("✏️ Edycja / Finalizacja szkicu")
+    # Wybór protokołu
+    st.subheader("✏️ Edycja / Finalizacja protokołu")
     
     def format_draft_option(draft_id):
         if not draft_id:
-            return "Wybierz szkic..."
+            return "Wybierz protokół..."
         
         draft = next((d for d in drafts if d['id'] == draft_id), None)
         if not draft:
             return draft_id
             
-        # Formatuj czytelny opis szkicu
+        # Formatuj czytelny opis protokołu
         pomieszczenie = draft.get('pomieszczenie', 'Nieznane')
         typ = draft.get('collection_target', 'nieznany')
         klient = draft.get('imie_nazwisko', 'Nieznany klient')
@@ -251,20 +250,20 @@ def page_wymiary():
         return f"🏠 {pomieszczenie} | {typ.upper()} | {klient} | {date_str}"
     
     draft_ids = [d['id'] for d in drafts]
-    selected_id = st.selectbox("Wybierz szkic:", options=[""] + draft_ids, format_func=format_draft_option)
+    selected_id = st.selectbox("Wybierz protokół:", options=[""] + draft_ids, format_func=format_draft_option)
 
     if selected_id:
         # Pobierz najświeższe dane szkicu z bazy danych
         try:
             fresh_draft_doc = db.collection('wymiary_draft').document(selected_id).get()
             if not fresh_draft_doc.exists:
-                st.error("❌ Nie znaleziono szkicu")
+                st.error("❌ Nie znaleziono protokołu")
                 return
             draft = fresh_draft_doc.to_dict()
             draft['id'] = fresh_draft_doc.id
 
         except Exception as e:
-            st.error(f"❌ Błąd podczas pobierania szkicu: {e}")
+            st.error(f"❌ Błąd podczas pobierania protokołu: {e}")
             return
 
         st.markdown("---")
@@ -305,12 +304,11 @@ def page_wymiary():
             st.subheader("🚪 Strona otwierania")
             so = draft.get('strona_otwierania', {}) or {}
             
-            # Określ aktualny wybór na podstawie zapisanych danych
             current_choice = "Nie wybrano"
             if so.get('lewe_przyl'):
-                current_choice = "LEWE przylgowe"
+                current_choice = "LEWE"
             elif so.get('prawe_przyl'):
-                current_choice = "PRAWE przylgowe"
+                current_choice = "PRAWE"
             elif so.get('lewe_odwr'):
                 current_choice = "LEWE odwrotna przylga"
             elif so.get('prawe_odwr'):
@@ -318,8 +316,8 @@ def page_wymiary():
             
             strona_otwierania_szkic = st.radio(
                 "Kierunek otwierania drzwi:",
-                ["Nie wybrano", "LEWE przylgowe", "PRAWE przylgowe", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"],
-                index=["Nie wybrano", "LEWE przylgowe", "PRAWE przylgowe", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"].index(current_choice),
+                ["Nie wybrano", "LEWE", "PRAWE", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"],
+                index=["Nie wybrano", "LEWE", "PRAWE", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"].index(current_choice),
                 key=f"strona_otwierania_szkic_{selected_id}",
                 horizontal=True
             )
