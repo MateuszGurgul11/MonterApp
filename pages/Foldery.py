@@ -23,6 +23,17 @@ if not st.session_state.get('logged_in', False):
         st.switch_page("main.py")
     st.stop()
 
+# Funkcje pomocnicze do sprawdzania uprawnień
+def can_edit_records():
+    """Sprawdza czy użytkownik może edytować rekordy"""
+    user_role = st.session_state.get('user_role', '')
+    return user_role == 'admin'
+
+def can_view_records():
+    """Sprawdza czy użytkownik może przeglądać rekordy"""
+    user_role = st.session_state.get('user_role', '')
+    return user_role in ['admin', 'sprzedawca', 'monter']
+
 
 def _normalize_name(text: str) -> str:
     if not text:
@@ -62,7 +73,122 @@ def _folder_name(rec: dict) -> tuple[str, datetime]:
 
 def page_foldery():
     st.set_page_config(page_title="Foldery klientów", layout="wide")
+    
+    # Dodaj CSS dla poprawnego zawijania tekstu w kolumnach
+    st.markdown("""
+    <style>
+    /* Napraw zawijanie tekstu w kolumnach */
+    .stTextInput, .stTextArea, .stSelectbox {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Napraw zawijanie tekstu w polach tekstowych */
+    .stTextInput > div > div > input {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Napraw zawijanie tekstu w obszarach tekstowych */
+    .stTextArea > div > div > textarea {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+        white-space: pre-wrap !important;
+    }
+    
+    /* Napraw zawijanie tekstu w selectbox */
+    .stSelectbox > div > div > div {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Napraw zawijanie tekstu w wyświetlanych danych */
+    .stDataFrame {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Napraw zawijanie tekstu w kolumnach */
+    [data-testid="column"] {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Napraw zawijanie tekstu w elementach div */
+    div[data-testid="stTextInput"], div[data-testid="stTextArea"], div[data-testid="stSelectbox"] {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Napraw zawijanie tekstu w wyświetlanych danych (tryb podglądu) */
+    .element-container {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Napraw zawijanie tekstu w paragrafach */
+    p {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+        white-space: pre-wrap !important;
+    }
+    
+    /* Napraw zawijanie tekstu w elementach strong/bold */
+    strong, b {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Napraw zawijanie tekstu w elementach div */
+    div {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Napraw zawijanie tekstu w elementach span */
+    span {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Napraw zawijanie tekstu w elementach markdown */
+    .markdown-text-container {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+        white-space: pre-wrap !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     st.title("📁 Foldery klientów (wirtualne)")
+
+    # Sprawdź uprawnienia użytkownika
+    if not can_view_records():
+        st.error("🚫 **Dostęp zabroniony** - Brak odpowiednich uprawnień!")
+        st.info("💡 Ta strona jest dostępna tylko dla administratorów, sprzedawców i monterów.")
+        if st.button("🔙 Powrót do głównej strony", type="primary"):
+            st.switch_page("main.py")
+        st.stop()
+    
+    # Informacja o uprawnieniach
+    user_role = st.session_state.get('user_role', '')
+    if can_edit_records():
+        st.success("🔧 **Tryb edycji:** Możesz edytować wszystkie rekordy")
+    else:
+        st.info("👁️ **Tryb podglądu:** Możesz tylko przeglądać dane (bez edycji)")
 
     db = setup_database()
     if db is None:
@@ -265,175 +391,178 @@ def display_drzwi_protocol(db, data, doc_id):
     # Klucz unikalne dla tego protokołu
     key_suffix = f"drzwi_{doc_id}"
     
-    with st.form(f"edit_protocol_{key_suffix}"):
-        # SEKCJA 1: Podstawowe informacje (część montera)
-        st.markdown("#### 📋 Podstawowe informacje")
-        col1, col2 = st.columns(2)
+    # Sprawdź czy użytkownik może edytować
+    if can_edit_records():
+        # Tryb edycji - pokaż formularz
+        with st.form(f"edit_protocol_{key_suffix}"):
+            # SEKCJA 1: Podstawowe informacje (część montera)
+            st.markdown("#### 📋 Podstawowe informacje")
+            col1, col2 = st.columns(2)
         
-        with col1:
-            pomieszczenie = st.text_input("Pomieszczenie:", value=data.get('pomieszczenie', ''), key=f"pomieszczenie_{key_suffix}")
-            imie_nazwisko = st.text_input("Imię i nazwisko klienta:", value=data.get('imie_nazwisko', ''), key=f"imie_nazwisko_{key_suffix}")
-            telefon = st.text_input("Telefon:", value=data.get('telefon', ''), key=f"telefon_{key_suffix}")
-            monter_id = st.text_input("Monter:", value=data.get('monter_id', ''), key=f"monter_id_{key_suffix}")
+            with col1:
+                pomieszczenie = st.text_input("Pomieszczenie:", value=data.get('pomieszczenie', ''), key=f"pomieszczenie_{key_suffix}")
+                imie_nazwisko = st.text_input("Imię i nazwisko klienta:", value=data.get('imie_nazwisko', ''), key=f"imie_nazwisko_{key_suffix}")
+                telefon = st.text_input("Telefon:", value=data.get('telefon', ''), key=f"telefon_{key_suffix}")
+                monter_id = st.text_input("Monter:", value=data.get('monter_id', ''), key=f"monter_id_{key_suffix}")
+            
+            with col2:
+                data_utworzenia = st.text_input("Data utworzenia:", value=str(data.get('data_utworzenia', '')), disabled=True, key=f"data_utworzenia_{key_suffix}")
+                kod_dostepu = st.text_input("Kod dostępu:", value=data.get('kod_dostepu', ''), disabled=True, key=f"kod_dostepu_{key_suffix}")
+                status = st.selectbox("Status:", ["szkic", "pomiary", "aktywny", "zakończony", "anulowany"], 
+                                    index=["szkic", "pomiary", "aktywny", "zakończony", "anulowany"].index(data.get('status', 'szkic')), 
+                                    key=f"status_{key_suffix}")
+            
+            # SEKCJA 2: Pomiary otworu (część montera)
+            st.markdown("#### 📐 Pomiary otworu")
+            col3, col4 = st.columns(2)
+            
+            with col3:
+                szerokosc_otworu = st.text_input("Szerokość otworu:", value=data.get('szerokosc_otworu', ''), key=f"szerokosc_otworu_{key_suffix}")
+                wysokosc_otworu = st.text_input("Wysokość otworu:", value=data.get('wysokosc_otworu', ''), key=f"wysokosc_otworu_{key_suffix}")
+                mierzona_od = st.text_input("Mierzona od:", value=data.get('mierzona_od', ''), key=f"mierzona_od_{key_suffix}")
+            
+            with col4:
+                grubosc_muru = st.text_input("Grubość muru (cm):", value=data.get('grubosc_muru', ''), key=f"grubosc_muru_{key_suffix}")
+                stan_sciany = st.text_input("Stan ściany:", value=data.get('stan_sciany', ''), key=f"stan_sciany_{key_suffix}")
+            
+            # SEKCJA 3: Specyfikacja techniczna (część montera + sprzedawcy)
+            st.markdown("#### 🔨 Specyfikacja techniczna")
+            col5, col6 = st.columns(2)
+            
+            with col5:
+                typ_drzwi = st.selectbox("Typ drzwi:", ["Przylgowe", "Bezprzylgowe", "Odwrotna Przylga", "Renova"],
+                                       index=["Przylgowe", "Bezprzylgowe", "Odwrotna Przylga", "Renova"].index(data.get('typ_drzwi', 'Przylgowe')) if data.get('typ_drzwi') in ["Przylgowe", "Bezprzylgowe", "Odwrotna Przylga", "Renova"] else 0,
+                                       key=f"typ_drzwi_{key_suffix}")
+                oscieznica = st.text_input("Ościeżnica:", value=data.get('oscieznica', ''), key=f"oscieznica_{key_suffix}")
+                opaska = st.radio("Opaska:", ["6 cm", "8 cm"], 
+                                index=["6 cm", "8 cm"].index(data.get('opaska', '6 cm')) if data.get('opaska') in ["6 cm", "8 cm"] else 0,
+                                horizontal=True, key=f"opaska_{key_suffix}")
         
-        with col2:
-            data_utworzenia = st.text_input("Data utworzenia:", value=str(data.get('data_utworzenia', '')), disabled=True, key=f"data_utworzenia_{key_suffix}")
-            kod_dostepu = st.text_input("Kod dostępu:", value=data.get('kod_dostepu', ''), disabled=True, key=f"kod_dostepu_{key_suffix}")
-            status = st.selectbox("Status:", ["szkic", "pomiary", "aktywny", "zakończony", "anulowany"], 
-                                index=["szkic", "pomiary", "aktywny", "zakończony", "anulowany"].index(data.get('status', 'szkic')), 
-                                key=f"status_{key_suffix}")
-        
-        # SEKCJA 2: Pomiary otworu (część montera)
-        st.markdown("#### 📐 Pomiary otworu")
-        col3, col4 = st.columns(2)
-        
-        with col3:
-            szerokosc_otworu = st.text_input("Szerokość otworu:", value=data.get('szerokosc_otworu', ''), key=f"szerokosc_otworu_{key_suffix}")
-            wysokosc_otworu = st.text_input("Wysokość otworu:", value=data.get('wysokosc_otworu', ''), key=f"wysokosc_otworu_{key_suffix}")
-            mierzona_od = st.text_input("Mierzona od:", value=data.get('mierzona_od', ''), key=f"mierzona_od_{key_suffix}")
-        
-        with col4:
-            grubosc_muru = st.text_input("Grubość muru (cm):", value=data.get('grubosc_muru', ''), key=f"grubosc_muru_{key_suffix}")
-            stan_sciany = st.text_input("Stan ściany:", value=data.get('stan_sciany', ''), key=f"stan_sciany_{key_suffix}")
-        
-        # SEKCJA 3: Specyfikacja techniczna (część montera + sprzedawcy)
-        st.markdown("#### 🔨 Specyfikacja techniczna")
-        col5, col6 = st.columns(2)
-        
-        with col5:
-            typ_drzwi = st.selectbox("Typ drzwi:", ["Przylgowe", "Bezprzylgowe", "Odwrotna Przylga", "Renova"],
-                                   index=["Przylgowe", "Bezprzylgowe", "Odwrotna Przylga", "Renova"].index(data.get('typ_drzwi', 'Przylgowe')) if data.get('typ_drzwi') in ["Przylgowe", "Bezprzylgowe", "Odwrotna Przylga", "Renova"] else 0,
-                                   key=f"typ_drzwi_{key_suffix}")
-            oscieznica = st.text_input("Ościeżnica:", value=data.get('oscieznica', ''), key=f"oscieznica_{key_suffix}")
-            opaska = st.radio("Opaska:", ["6 cm", "8 cm"], 
-                            index=["6 cm", "8 cm"].index(data.get('opaska', '6 cm')) if data.get('opaska') in ["6 cm", "8 cm"] else 0,
-                            horizontal=True, key=f"opaska_{key_suffix}")
-        
-        with col6:
-            kat_zaciecia = st.selectbox("Kąt zacięcia:", ["45°", "90°", "0°"],
-                                      index=["45°", "90°", "0°"].index(data.get('kat_zaciecia', '45°')) if data.get('kat_zaciecia') in ["45°", "90°", "0°"] else 0,
-                                      key=f"kat_zaciecia_{key_suffix}")
-            prog = st.text_input("Próg:", value=data.get('prog', ''), key=f"prog_{key_suffix}")
-            wizjer = st.checkbox("Wizjer", value=bool(data.get('wizjer', False)), key=f"wizjer_{key_suffix}")
-        
-        # SEKCJA 4: Strona otwierania (część montera)
-        st.markdown("#### 🚪 Strona otwierania")
-        strona_otw = data.get('strona_otwierania', {})
-        
-        # Określ obecny wybór dla radio buttons
-        current_selection = "Nie wybrano"
-        if strona_otw.get('lewe_przyl'):
-            current_selection = "LEWE"
-        elif strona_otw.get('prawe_przyl'):
-            current_selection = "PRAWE"
-        elif strona_otw.get('lewe_odwr'):
-            current_selection = "LEWE odwrotna przylga"
-        elif strona_otw.get('prawe_odwr'):
-            current_selection = "PRAWE odwrotna przylga"
-        
-        # Radio buttons ułożone poziomo
-        strona_otwierania_radio = st.radio(
-            "Kierunek otwierania drzwi:",
-            ["Nie wybrano", "LEWE", "PRAWE", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"],
-            index=["Nie wybrano", "LEWE", "PRAWE", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"].index(current_selection),
-            horizontal=True,
-            key=f"strona_otwierania_radio_{key_suffix}"
-        )
-        
-        # Wyświetl obrazki dla każdej opcji w 4 kolumnach
-        col_img1, col_img2, col_img3, col_img4 = st.columns(4)
-        
-        with col_img1:
-            if strona_otwierania_radio == "LEWE przylgowe":
-                st.markdown("**✅ LEWE (przylgowe/bezprzylgowe)**")
-            else:
-                st.markdown("**LEWE (przylgowe/bezprzylgowe)**")
-            try:
-                st.image("drzwi/lewe_przyl.png", width=150 ,use_container_width=False)
-            except:
-                st.write("🖼️ Obrazek niedostępny")
-        
-        with col_img2:
-            if strona_otwierania_radio == "PRAWE przylgowe":
-                st.markdown("**✅ PRAWE (przylgowe/bezprzylgowe)**")
-            else:
-                st.markdown("**PRAWE (przylgowe/bezprzylgowe)**")
-            try:
-                st.image("drzwi/prawe_przyl.png", width=150,use_container_width=False)
-            except:
-                st.write("🖼️ Obrazek niedostępny")
-        
-        with col_img3:
-            if strona_otwierania_radio == "LEWE odwrotna przylga":
-                st.markdown("**✅ LEWE (odwrotna przylga)**")
-            else:
-                st.markdown("**LEWE (odwrotna przylga)**")
-            try:
-                st.image("drzwi/lewe_odwr.png", width=150,use_container_width=False)
-            except:
-                st.write("🖼️ Obrazek niedostępny")
-        
-        with col_img4:
-            if strona_otwierania_radio == "PRAWE odwrotna przylga":
-                st.markdown("**✅ PRAWE (odwrotna przylga)**")
-            else:
-                st.markdown("**PRAWE (odwrotna przylga)**")
-            try:
-                st.image("drzwi/prawe_odwr.png", width=150,use_container_width=False)
-            except:
-                st.write("🖼️ Obrazek niedostępny")
-        
-        # Pola dodatkowe
-        col11, col12 = st.columns(2)
-        with col11:
-            napis_nad_drzwiami = st.text_input("Otwierane na:", value=data.get('napis_nad_drzwiami', ''), key=f"napis_nad_drzwiami_{key_suffix}")
-        with col12:
-            szerokosc_skrzydla = st.text_input("Szerokość skrzydła (cm):", value=data.get('szerokosc_skrzydla', ''), key=f"szerokosc_skrzydla_{key_suffix}")
-        
-        # SEKCJA 5: Dane produktu (część sprzedawcy)
-        st.markdown("#### 🏷️ Dane produktu")
-        col13, col14 = st.columns(2)
-        
-        with col13:
-            producent = st.text_input("Producent:", value=data.get('producent', ''), key=f"producent_{key_suffix}")
-            seria = st.text_input("Seria:", value=data.get('seria', ''), key=f"seria_{key_suffix}")
-            typ_produktu = st.text_input("Typ:", value=data.get('typ', ''), key=f"typ_{key_suffix}")
-            rodzaj_okleiny = st.text_input("Rodzaj okleiny:", value=data.get('rodzaj_okleiny', ''), key=f"rodzaj_okleiny_{key_suffix}")
-            ilosc_szyb = st.text_input("Ilość szyb:", value=data.get('ilosc_szyb', ''), key=f"ilosc_szyb_{key_suffix}")
-            zamek = st.text_input("Zamek:", value=data.get('zamek', ''), key=f"zamek_{key_suffix}")
-        
-        with col14:
-            szyba = st.text_input("Szyba:", value=data.get('szyba', ''), key=f"szyba_{key_suffix}")
-            wentylacja = st.text_input("Wentylacja:", value=data.get('wentylacja', ''), key=f"wentylacja_{key_suffix}")
-            klamka = st.text_input("Klamka:", value=data.get('klamka', ''), key=f"klamka_{key_suffix}")
-            kolor_wizjera = st.text_input("Kolor wizjera:", value=data.get('kolor_wizjera', ''), key=f"kolor_wizjera_{key_suffix}")
-            wypelnienie = st.text_input("Wypełnienie:", value=data.get('wypelnienie', ''), key=f"wypelnienie_{key_suffix}")
-            kolor_okuc = st.text_input("Kolor okucia:", value=data.get('kolor_okuc', ''), key=f"kolor_okuc_{key_suffix}")
-        
-        kolor_osc = st.text_input("Kolor ościeżnicy (jeśli inna):", value=data.get('kolor_osc', ''), key=f"kolor_osc_{key_suffix}")
-        
-        # SEKCJA 6: Uwagi i opcje
-        st.markdown("#### 💬 Uwagi i opcje")
-        opcje_dodatkowe = st.text_area("Opcje dodatkowe:", value=data.get('opcje_dodatkowe', ''), height=100, key=f"opcje_dodatkowe_{key_suffix}")
-        uwagi_montera = st.text_area("Uwagi montera:", value=data.get('uwagi_montera', ''), height=100, key=f"uwagi_montera_{key_suffix}")
-        uwagi_klienta = st.text_area("Uwagi dla klienta:", value=data.get('uwagi_klienta', ''), height=100, key=f"uwagi_klienta_{key_suffix}")
-        
-        # SEKCJA 7: Wykonawcy
-        st.markdown("#### 👥 Wykonawcy")
-        col15, col16 = st.columns(2)
-        with col15:
-            sprzedawca_id = st.text_input("Sprzedawca:", value=data.get('sprzedawca_id', ''), key=f"sprzedawca_id_{key_suffix}")
-        with col16:
-            norma = st.selectbox("Norma/Szkic:", ["PL", "CZ"], 
-                               index=["PL", "CZ"].index(data.get('norma', 'PL')) if data.get('norma') in ["PL", "CZ"] else 0,
-                               key=f"norma_{key_suffix}")
-        
-        # Przyciski akcji
-        st.markdown("---")
-        col_btn1, col_btn2, col_btn3 = st.columns(3)
-        
-        with col_btn1:
-            submit_button = st.form_submit_button("💾 Zapisz zmiany", type="primary")
+            with col6:
+                kat_zaciecia = st.selectbox("Kąt zacięcia:", ["45°", "90°", "0°"],
+                                          index=["45°", "90°", "0°"].index(data.get('kat_zaciecia', '45°')) if data.get('kat_zaciecia') in ["45°", "90°", "0°"] else 0,
+                                          key=f"kat_zaciecia_{key_suffix}")
+                prog = st.text_input("Próg:", value=data.get('prog', ''), key=f"prog_{key_suffix}")
+                wizjer = st.checkbox("Wizjer", value=bool(data.get('wizjer', False)), key=f"wizjer_{key_suffix}")
+            
+            # SEKCJA 4: Strona otwierania (część montera)
+            st.markdown("#### 🚪 Strona otwierania")
+            strona_otw = data.get('strona_otwierania', {})
+            
+            # Określ obecny wybór dla radio buttons
+            current_selection = "Nie wybrano"
+            if strona_otw.get('lewe_przyl'):
+                current_selection = "LEWE"
+            elif strona_otw.get('prawe_przyl'):
+                current_selection = "PRAWE"
+            elif strona_otw.get('lewe_odwr'):
+                current_selection = "LEWE odwrotna przylga"
+            elif strona_otw.get('prawe_odwr'):
+                current_selection = "PRAWE odwrotna przylga"
+            
+            # Radio buttons ułożone poziomo
+            strona_otwierania_radio = st.radio(
+                "Kierunek otwierania drzwi:",
+                ["Nie wybrano", "LEWE", "PRAWE", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"],
+                index=["Nie wybrano", "LEWE", "PRAWE", "LEWE odwrotna przylga", "PRAWE odwrotna przylga"].index(current_selection),
+                horizontal=True,
+                key=f"strona_otwierania_radio_{key_suffix}"
+            )
+            
+            # Wyświetl obrazki dla każdej opcji w 4 kolumnach
+            col_img1, col_img2, col_img3, col_img4 = st.columns(4)
+            
+            with col_img1:
+                if strona_otwierania_radio == "LEWE przylgowe":
+                    st.markdown("**✅ LEWE (przylgowe/bezprzylgowe)**")
+                else:
+                    st.markdown("**LEWE (przylgowe/bezprzylgowe)**")
+                try:
+                    st.image("drzwi/lewe_przyl.png", width=150 ,use_container_width=False)
+                except:
+                    st.write("🖼️ Obrazek niedostępny")
+            
+            with col_img2:
+                if strona_otwierania_radio == "PRAWE przylgowe":
+                    st.markdown("**✅ PRAWE (przylgowe/bezprzylgowe)**")
+                else:
+                    st.markdown("**PRAWE (przylgowe/bezprzylgowe)**")
+                try:
+                    st.image("drzwi/prawe_przyl.png", width=150,use_container_width=False)
+                except:
+                    st.write("🖼️ Obrazek niedostępny")
+            
+            with col_img3:
+                if strona_otwierania_radio == "LEWE odwrotna przylga":
+                    st.markdown("**✅ LEWE (odwrotna przylga)**")
+                else:
+                    st.markdown("**LEWE (odwrotna przylga)**")
+                try:
+                    st.image("drzwi/lewe_odwr.png", width=150,use_container_width=False)
+                except:
+                    st.write("🖼️ Obrazek niedostępny")
+            
+            with col_img4:
+                if strona_otwierania_radio == "PRAWE odwrotna przylga":
+                    st.markdown("**✅ PRAWE (odwrotna przylga)**")
+                else:
+                    st.markdown("**PRAWE (odwrotna przylga)**")
+                try:
+                    st.image("drzwi/prawe_odwr.png", width=150,use_container_width=False)
+                except:
+                    st.write("🖼️ Obrazek niedostępny")
+            
+            # Pola dodatkowe
+            col11, col12 = st.columns(2)
+            with col11:
+                napis_nad_drzwiami = st.text_input("Otwierane na:", value=data.get('napis_nad_drzwiami', ''), key=f"napis_nad_drzwiami_{key_suffix}")
+            with col12:
+                szerokosc_skrzydla = st.text_input("Szerokość skrzydła (cm):", value=data.get('szerokosc_skrzydla', ''), key=f"szerokosc_skrzydla_{key_suffix}")
+            
+            # SEKCJA 5: Dane produktu (część sprzedawcy)
+            st.markdown("#### 🏷️ Dane produktu")
+            col13, col14 = st.columns(2)
+            
+            with col13:
+                producent = st.text_input("Producent:", value=data.get('producent', ''), key=f"producent_{key_suffix}")
+                seria = st.text_input("Seria:", value=data.get('seria', ''), key=f"seria_{key_suffix}")
+                typ_produktu = st.text_input("Typ:", value=data.get('typ', ''), key=f"typ_{key_suffix}")
+                rodzaj_okleiny = st.text_input("Rodzaj okleiny:", value=data.get('rodzaj_okleiny', ''), key=f"rodzaj_okleiny_{key_suffix}")
+                ilosc_szyb = st.text_input("Ilość szyb:", value=data.get('ilosc_szyb', ''), key=f"ilosc_szyb_{key_suffix}")
+                zamek = st.text_input("Zamek:", value=data.get('zamek', ''), key=f"zamek_{key_suffix}")
+            
+            with col14:
+                szyba = st.text_input("Szyba:", value=data.get('szyba', ''), key=f"szyba_{key_suffix}")
+                wentylacja = st.text_input("Wentylacja:", value=data.get('wentylacja', ''), key=f"wentylacja_{key_suffix}")
+                klamka = st.text_input("Klamka:", value=data.get('klamka', ''), key=f"klamka_{key_suffix}")
+                kolor_wizjera = st.text_input("Kolor wizjera:", value=data.get('kolor_wizjera', ''), key=f"kolor_wizjera_{key_suffix}")
+                wypelnienie = st.text_input("Wypełnienie:", value=data.get('wypelnienie', ''), key=f"wypelnienie_{key_suffix}")
+                kolor_okuc = st.text_input("Kolor okucia:", value=data.get('kolor_okuc', ''), key=f"kolor_okuc_{key_suffix}")
+            
+            kolor_osc = st.text_input("Kolor ościeżnicy (jeśli inna):", value=data.get('kolor_osc', ''), key=f"kolor_osc_{key_suffix}")
+            
+            # SEKCJA 6: Uwagi i opcje
+            st.markdown("#### 💬 Uwagi i opcje")
+            opcje_dodatkowe = st.text_area("Opcje dodatkowe:", value=data.get('opcje_dodatkowe', ''), height=100, key=f"opcje_dodatkowe_{key_suffix}")
+            uwagi_montera = st.text_area("Uwagi montera:", value=data.get('uwagi_montera', ''), height=100, key=f"uwagi_montera_{key_suffix}")
+            uwagi_klienta = st.text_area("Uwagi dla klienta:", value=data.get('uwagi_klienta', ''), height=100, key=f"uwagi_klienta_{key_suffix}")
+            
+            # SEKCJA 7: Wykonawcy
+            st.markdown("#### 👥 Wykonawcy")
+            col15, col16 = st.columns(2)
+            with col15:
+                sprzedawca_id = st.text_input("Sprzedawca:", value=data.get('sprzedawca_id', ''), key=f"sprzedawca_id_{key_suffix}")
+            with col16:
+                norma = st.selectbox("Norma/Szkic:", ["PL", "CZ"], 
+                                   index=["PL", "CZ"].index(data.get('norma', 'PL')) if data.get('norma') in ["PL", "CZ"] else 0,
+                                   key=f"norma_{key_suffix}")
+            
+            # Przyciski akcji
+            st.markdown("---")
+            col_btn1, col_btn2, col_btn3 = st.columns(3)
+            
+            with col_btn1:
+                submit_button = st.form_submit_button("💾 Zapisz zmiany", type="primary")
         
         # Obsługa akcji
         if submit_button:
@@ -491,6 +620,85 @@ def display_drzwi_protocol(db, data, doc_id):
                 st.rerun()
             else:
                 st.error("❌ Błąd podczas zapisywania protokołu")
+    else:
+        # Tryb podglądu - pokaż dane w formie tylko do odczytu
+        st.markdown("#### 📋 Podstawowe informacje")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write(f"**Pomieszczenie:** {data.get('pomieszczenie', '')}")
+            st.write(f"**Imię i nazwisko klienta:** {data.get('imie_nazwisko', '')}")
+            st.write(f"**Telefon:** {data.get('telefon', '')}")
+            st.write(f"**Monter:** {data.get('monter_id', '')}")
+        
+        with col2:
+            st.write(f"**Data utworzenia:** {data.get('data_utworzenia', '')}")
+            st.write(f"**Kod dostępu:** {data.get('kod_dostepu', '')}")
+            st.write(f"**Status:** {data.get('status', '')}")
+        
+        st.markdown("#### 📐 Pomiary otworu")
+        col3, col4 = st.columns(2)
+        
+        with col3:
+            st.write(f"**Szerokość otworu:** {data.get('szerokosc_otworu', '')}")
+            st.write(f"**Wysokość otworu:** {data.get('wysokosc_otworu', '')}")
+            st.write(f"**Mierzona od:** {data.get('mierzona_od', '')}")
+        
+        with col4:
+            st.write(f"**Grubość muru:** {data.get('grubosc_muru', '')} cm")
+            st.write(f"**Stan ściany:** {data.get('stan_sciany', '')}")
+        
+        st.markdown("#### 🔨 Specyfikacja techniczna")
+        col5, col6 = st.columns(2)
+        
+        with col5:
+            st.write(f"**Typ drzwi:** {data.get('typ_drzwi', '')}")
+            st.write(f"**Ościeżnica:** {data.get('oscieznica', '')}")
+            st.write(f"**Opaska:** {data.get('opaska', '')}")
+        
+        with col6:
+            st.write(f"**Kąt zacięcia:** {data.get('kat_zaciecia', '')}")
+            st.write(f"**Próg:** {data.get('prog', '')}")
+            st.write(f"**Wizjer:** {'Tak' if data.get('wizjer', False) else 'Nie'}")
+        
+        st.markdown("#### 🚪 Strona otwierania")
+        strona_otw = data.get('strona_otwierania', {})
+        if strona_otw.get('lewe_przyl'):
+            st.write("**Kierunek otwierania:** LEWE przylgowe")
+        elif strona_otw.get('prawe_przyl'):
+            st.write("**Kierunek otwierania:** PRAWE przylgowe")
+        elif strona_otw.get('lewe_odwr'):
+            st.write("**Kierunek otwierania:** LEWE odwrotna przylga")
+        elif strona_otw.get('prawe_odwr'):
+            st.write("**Kierunek otwierania:** PRAWE odwrotna przylga")
+        else:
+            st.write("**Kierunek otwierania:** Nie określono")
+        
+        st.markdown("#### 🏷️ Dane produktu")
+        col7, col8 = st.columns(2)
+        
+        with col7:
+            st.write(f"**Producent:** {data.get('producent', '')}")
+            st.write(f"**Seria:** {data.get('seria', '')}")
+            st.write(f"**Typ:** {data.get('typ', '')}")
+            st.write(f"**Rodzaj okleiny:** {data.get('rodzaj_okleiny', '')}")
+        
+        with col8:
+            st.write(f"**Zamek:** {data.get('zamek', '')}")
+            st.write(f"**Szyba:** {data.get('szyba', '')}")
+            st.write(f"**Klamka:** {data.get('klamka', '')}")
+            st.write(f"**Wypełnienie:** {data.get('wypelnienie', '')}")
+        
+        st.markdown("#### 💬 Uwagi")
+        if data.get('uwagi_montera'):
+            st.markdown("**Uwagi montera:**")
+            st.text(data.get('uwagi_montera', ''))
+        if data.get('uwagi_klienta'):
+            st.markdown("**Uwagi dla klienta:**")
+            st.text(data.get('uwagi_klienta', ''))
+        if data.get('opcje_dodatkowe'):
+            st.markdown("**Opcje dodatkowe:**")
+            st.text(data.get('opcje_dodatkowe', ''))
     
     # Obsługa PDF poza formularzem
     if st.button(f"📄 Pobierz PDF", key=f"pdf_download_{key_suffix}"):
@@ -509,96 +717,99 @@ def display_drzwi_wejsciowe_protocol(db, data, doc_id):
     
     key_suffix = f"drzwi_wej_{doc_id}"
     
-    with st.form(f"edit_protocol_{key_suffix}"):
-        # Podstawowe informacje
-        st.markdown("#### 📋 Podstawowe informacje")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            numer_strony = st.text_input("Numer strony:", value=data.get('numer_strony', ''), key=f"numer_strony_{key_suffix}")
-            imie_nazwisko = st.text_input("Imię i nazwisko:", value=data.get('imie_nazwisko', ''), key=f"imie_nazwisko_{key_suffix}")
-            telefon = st.text_input("Telefon:", value=data.get('telefon', ''), key=f"telefon_{key_suffix}")
-            pomieszczenie = st.text_input("Pomieszczenie:", value=data.get('pomieszczenie', ''), key=f"pomieszczenie_{key_suffix}")
-        
-        with col2:
-            data_utworzenia = st.text_input("Data utworzenia:", value=str(data.get('data_utworzenia', '')), disabled=True, key=f"data_utworzenia_{key_suffix}")
-            monter_id = st.text_input("Monter:", value=data.get('monter_id', ''), key=f"monter_id_{key_suffix}")
-            status = st.selectbox("Status:", ["szkic", "pomiary", "aktywny", "zakończony", "anulowany"], 
-                                index=["szkic", "pomiary", "aktywny", "zakończony", "anulowany"].index(data.get('status', 'szkic')), 
-                                key=f"status_{key_suffix}")
-        
-        # Wymiary otworu
-        st.markdown("#### 📏 Wymiary otworu")
-        col3, col4 = st.columns(2)
-        
-        with col3:
-            szerokosc_otworu = st.text_input("Szerokość otworu:", value=data.get('szerokosc_otworu', ''), key=f"szerokosc_otworu_{key_suffix}")
-            wysokosc_otworu = st.text_input("Wysokość otworu:", value=data.get('wysokosc_otworu', ''), key=f"wysokosc_otworu_{key_suffix}")
-        
-        with col4:
-            mierzona_od = st.text_input("Mierzona od:", value=data.get('mierzona_od', ''), key=f"mierzona_od_{key_suffix}")
-            skrot = st.text_input("Skrót:", value=data.get('skrot', ''), key=f"skrot_{key_suffix}")
-        
-        # Dane techniczne
-        st.markdown("#### 🏗️ Dane techniczne")
-        col5, col6 = st.columns(2)
-        
-        with col5:
-            grubosc_muru = st.text_input("Grubość muru (cm):", value=data.get('grubosc_muru', ''), key=f"grubosc_muru_{key_suffix}")
-            stan_sciany = st.text_input("Stan ściany:", value=data.get('stan_sciany', ''), key=f"stan_sciany_{key_suffix}")
-            oscieznica = st.text_input("Ościeżnica:", value=data.get('oscieznica', ''), key=f"oscieznica_{key_suffix}")
-        
-        with col6:
-            okapnik = st.text_input("Okapnik:", value=data.get('okapnik', ''), key=f"okapnik_{key_suffix}")
-            prog = st.text_input("Próg:", value=data.get('prog', ''), key=f"prog_{key_suffix}")
-            wizjer = st.checkbox("Wizjer", value=bool(data.get('wizjer', False)), key=f"wizjer_{key_suffix}")
-            elektrozaczep = st.text_input("Elektrozaczep:", value=data.get('elektrozaczep', ''), key=f"elektrozaczep_{key_suffix}")
-        
-        # Strona otwierania
-        st.markdown("#### 🚪 Strona otwierania")
-        strona_otw = data.get('strona_otwierania', {})
-        col7, col8, col9, col10 = st.columns(4)
-        
-        with col7:
-            na_zewnatrz = st.checkbox("Na zewnątrz", value=strona_otw.get('na_zewnatrz', False), key=f"na_zewnatrz_{key_suffix}")
-        with col8:
-            do_wewnatrz = st.checkbox("Do wewnątrz", value=strona_otw.get('do_wewnatrz', False), key=f"do_wewnatrz_{key_suffix}")
-        with col9:
-            lewe = st.checkbox("Lewe", value=strona_otw.get('lewe', False), key=f"lewe_{key_suffix}")
-        with col10:
-            prawe = st.checkbox("Prawe", value=strona_otw.get('prawe', False), key=f"prawe_{key_suffix}")
-        
-        # Dane produktu
-        st.markdown("#### 🏷️ Dane produktu")
-        col11, col12 = st.columns(2)
-        
-        with col11:
-            producent = st.text_input("Producent:", value=data.get('producent', ''), key=f"producent_{key_suffix}")
-            grubosc = st.text_input("Grubość:", value=data.get('grubosc', ''), key=f"grubosc_{key_suffix}")
-            wzor = st.text_input("Wzór:", value=data.get('wzor', ''), key=f"wzor_{key_suffix}")
-            rodzaj_okleiny = st.text_input("Rodzaj okleiny:", value=data.get('rodzaj_okleiny', ''), key=f"rodzaj_okleiny_{key_suffix}")
-            ramka = st.text_input("Ramka:", value=data.get('ramka', ''), key=f"ramka_{key_suffix}")
-        
-        with col12:
-            seria = st.text_input("Seria:", value=data.get('seria', ''), key=f"seria_{key_suffix}")
-            wkladki = st.text_input("Wkładki:", value=data.get('wkladki', ''), key=f"wkladki_{key_suffix}")
-            szyba = st.text_input("Szyba:", value=data.get('szyba', ''), key=f"szyba_{key_suffix}")
-            klamka = st.text_input("Klamka:", value=data.get('klamka', ''), key=f"klamka_{key_suffix}")
-            dostawka = st.text_input("Dostawka:", value=data.get('dostawka', ''), key=f"dostawka_{key_suffix}")
-        
-        # Uwagi
-        st.markdown("#### 💬 Uwagi")
-        opcje_dodatkowe = st.text_area("Opcje dodatkowe:", value=data.get('opcje_dodatkowe', ''), height=100, key=f"opcje_dodatkowe_{key_suffix}")
-        uwagi_montera = st.text_area("Uwagi montera:", value=data.get('uwagi_montera', ''), height=100, key=f"uwagi_montera_{key_suffix}")
-        uwagi_klienta = st.text_area("Uwagi dla klienta:", value=data.get('uwagi_klienta', ''), height=100, key=f"uwagi_klienta_{key_suffix}")
-        
-        # Wykonawcy
-        st.markdown("#### 👥 Wykonawcy")
-        sprzedawca_id = st.text_input("Sprzedawca:", value=data.get('sprzedawca_id', ''), key=f"sprzedawca_id_{key_suffix}")
-        
-        # Przyciski
-        st.markdown("---")
-        submit_button = st.form_submit_button("💾 Zapisz zmiany", type="primary")
+    # Sprawdź czy użytkownik może edytować
+    if can_edit_records():
+        # Tryb edycji - pokaż formularz
+        with st.form(f"edit_protocol_{key_suffix}"):
+            # Podstawowe informacje
+            st.markdown("#### 📋 Podstawowe informacje")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                numer_strony = st.text_input("Numer strony:", value=data.get('numer_strony', ''), key=f"numer_strony_{key_suffix}")
+                imie_nazwisko = st.text_input("Imię i nazwisko:", value=data.get('imie_nazwisko', ''), key=f"imie_nazwisko_{key_suffix}")
+                telefon = st.text_input("Telefon:", value=data.get('telefon', ''), key=f"telefon_{key_suffix}")
+                pomieszczenie = st.text_input("Pomieszczenie:", value=data.get('pomieszczenie', ''), key=f"pomieszczenie_{key_suffix}")
+            
+            with col2:
+                data_utworzenia = st.text_input("Data utworzenia:", value=str(data.get('data_utworzenia', '')), disabled=True, key=f"data_utworzenia_{key_suffix}")
+                monter_id = st.text_input("Monter:", value=data.get('monter_id', ''), key=f"monter_id_{key_suffix}")
+                status = st.selectbox("Status:", ["szkic", "pomiary", "aktywny", "zakończony", "anulowany"], 
+                                    index=["szkic", "pomiary", "aktywny", "zakończony", "anulowany"].index(data.get('status', 'szkic')), 
+                                    key=f"status_{key_suffix}")
+            
+            # Wymiary otworu
+            st.markdown("#### 📏 Wymiary otworu")
+            col3, col4 = st.columns(2)
+            
+            with col3:
+                szerokosc_otworu = st.text_input("Szerokość otworu:", value=data.get('szerokosc_otworu', ''), key=f"szerokosc_otworu_{key_suffix}")
+                wysokosc_otworu = st.text_input("Wysokość otworu:", value=data.get('wysokosc_otworu', ''), key=f"wysokosc_otworu_{key_suffix}")
+            
+            with col4:
+                mierzona_od = st.text_input("Mierzona od:", value=data.get('mierzona_od', ''), key=f"mierzona_od_{key_suffix}")
+                skrot = st.text_input("Skrót:", value=data.get('skrot', ''), key=f"skrot_{key_suffix}")
+            
+            # Dane techniczne
+            st.markdown("#### 🏗️ Dane techniczne")
+            col5, col6 = st.columns(2)
+            
+            with col5:
+                grubosc_muru = st.text_input("Grubość muru (cm):", value=data.get('grubosc_muru', ''), key=f"grubosc_muru_{key_suffix}")
+                stan_sciany = st.text_input("Stan ściany:", value=data.get('stan_sciany', ''), key=f"stan_sciany_{key_suffix}")
+                oscieznica = st.text_input("Ościeżnica:", value=data.get('oscieznica', ''), key=f"oscieznica_{key_suffix}")
+            
+            with col6:
+                okapnik = st.text_input("Okapnik:", value=data.get('okapnik', ''), key=f"okapnik_{key_suffix}")
+                prog = st.text_input("Próg:", value=data.get('prog', ''), key=f"prog_{key_suffix}")
+                wizjer = st.checkbox("Wizjer", value=bool(data.get('wizjer', False)), key=f"wizjer_{key_suffix}")
+                elektrozaczep = st.text_input("Elektrozaczep:", value=data.get('elektrozaczep', ''), key=f"elektrozaczep_{key_suffix}")
+            
+            # Strona otwierania
+            st.markdown("#### 🚪 Strona otwierania")
+            strona_otw = data.get('strona_otwierania', {})
+            col7, col8, col9, col10 = st.columns(4)
+            
+            with col7:
+                na_zewnatrz = st.checkbox("Na zewnątrz", value=strona_otw.get('na_zewnatrz', False), key=f"na_zewnatrz_{key_suffix}")
+            with col8:
+                do_wewnatrz = st.checkbox("Do wewnątrz", value=strona_otw.get('do_wewnatrz', False), key=f"do_wewnatrz_{key_suffix}")
+            with col9:
+                lewe = st.checkbox("Lewe", value=strona_otw.get('lewe', False), key=f"lewe_{key_suffix}")
+            with col10:
+                prawe = st.checkbox("Prawe", value=strona_otw.get('prawe', False), key=f"prawe_{key_suffix}")
+            
+            # Dane produktu
+            st.markdown("#### 🏷️ Dane produktu")
+            col11, col12 = st.columns(2)
+            
+            with col11:
+                producent = st.text_input("Producent:", value=data.get('producent', ''), key=f"producent_{key_suffix}")
+                grubosc = st.text_input("Grubość:", value=data.get('grubosc', ''), key=f"grubosc_{key_suffix}")
+                wzor = st.text_input("Wzór:", value=data.get('wzor', ''), key=f"wzor_{key_suffix}")
+                rodzaj_okleiny = st.text_input("Rodzaj okleiny:", value=data.get('rodzaj_okleiny', ''), key=f"rodzaj_okleiny_{key_suffix}")
+                ramka = st.text_input("Ramka:", value=data.get('ramka', ''), key=f"ramka_{key_suffix}")
+            
+            with col12:
+                seria = st.text_input("Seria:", value=data.get('seria', ''), key=f"seria_{key_suffix}")
+                wkladki = st.text_input("Wkładki:", value=data.get('wkladki', ''), key=f"wkladki_{key_suffix}")
+                szyba = st.text_input("Szyba:", value=data.get('szyba', ''), key=f"szyba_{key_suffix}")
+                klamka = st.text_input("Klamka:", value=data.get('klamka', ''), key=f"klamka_{key_suffix}")
+                dostawka = st.text_input("Dostawka:", value=data.get('dostawka', ''), key=f"dostawka_{key_suffix}")
+            
+            # Uwagi
+            st.markdown("#### 💬 Uwagi")
+            opcje_dodatkowe = st.text_area("Opcje dodatkowe:", value=data.get('opcje_dodatkowe', ''), height=100, key=f"opcje_dodatkowe_{key_suffix}")
+            uwagi_montera = st.text_area("Uwagi montera:", value=data.get('uwagi_montera', ''), height=100, key=f"uwagi_montera_{key_suffix}")
+            uwagi_klienta = st.text_area("Uwagi dla klienta:", value=data.get('uwagi_klienta', ''), height=100, key=f"uwagi_klienta_{key_suffix}")
+            
+            # Wykonawcy
+            st.markdown("#### 👥 Wykonawcy")
+            sprzedawca_id = st.text_input("Sprzedawca:", value=data.get('sprzedawca_id', ''), key=f"sprzedawca_id_{key_suffix}")
+            
+            # Przyciski
+            st.markdown("---")
+            submit_button = st.form_submit_button("💾 Zapisz zmiany", type="primary")
         
         if submit_button:
             updated_data = {
@@ -648,6 +859,91 @@ def display_drzwi_wejsciowe_protocol(db, data, doc_id):
                 st.rerun()
             else:
                 st.error("❌ Błąd podczas zapisywania protokołu")
+    else:
+        # Tryb podglądu - pokaż dane w formie tylko do odczytu
+        st.markdown("#### 📋 Podstawowe informacje")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write(f"**Numer strony:** {data.get('numer_strony', '')}")
+            st.write(f"**Imię i nazwisko:** {data.get('imie_nazwisko', '')}")
+            st.write(f"**Telefon:** {data.get('telefon', '')}")
+            st.write(f"**Pomieszczenie:** {data.get('pomieszczenie', '')}")
+        
+        with col2:
+            st.write(f"**Data utworzenia:** {data.get('data_utworzenia', '')}")
+            st.write(f"**Monter:** {data.get('monter_id', '')}")
+            st.write(f"**Status:** {data.get('status', '')}")
+        
+        st.markdown("#### 📏 Wymiary otworu")
+        col3, col4 = st.columns(2)
+        
+        with col3:
+            st.write(f"**Szerokość otworu:** {data.get('szerokosc_otworu', '')}")
+            st.write(f"**Wysokość otworu:** {data.get('wysokosc_otworu', '')}")
+        
+        with col4:
+            st.write(f"**Mierzona od:** {data.get('mierzona_od', '')}")
+            st.write(f"**Skrót:** {data.get('skrot', '')}")
+        
+        st.markdown("#### 🏗️ Dane techniczne")
+        col5, col6 = st.columns(2)
+        
+        with col5:
+            st.write(f"**Grubość muru:** {data.get('grubosc_muru', '')} cm")
+            st.write(f"**Stan ściany:** {data.get('stan_sciany', '')}")
+            st.write(f"**Ościeżnica:** {data.get('oscieznica', '')}")
+        
+        with col6:
+            st.write(f"**Okapnik:** {data.get('okapnik', '')}")
+            st.write(f"**Próg:** {data.get('prog', '')}")
+            st.write(f"**Wizjer:** {'Tak' if data.get('wizjer', False) else 'Nie'}")
+            st.write(f"**Elektrozaczep:** {data.get('elektrozaczep', '')}")
+        
+        st.markdown("#### 🚪 Strona otwierania")
+        strona_otw = data.get('strona_otwierania', {})
+        kierunek = []
+        if strona_otw.get('na_zewnatrz'):
+            kierunek.append("Na zewnątrz")
+        if strona_otw.get('do_wewnatrz'):
+            kierunek.append("Do wewnątrz")
+        
+        strona = []
+        if strona_otw.get('lewe'):
+            strona.append("Lewe")
+        if strona_otw.get('prawe'):
+            strona.append("Prawe")
+        
+        st.write(f"**Kierunek otwierania:** {', '.join(kierunek) if kierunek else 'Nie określono'}")
+        st.write(f"**Strona zawiasów:** {', '.join(strona) if strona else 'Nie określono'}")
+        
+        st.markdown("#### 🏷️ Dane produktu")
+        col7, col8 = st.columns(2)
+        
+        with col7:
+            st.write(f"**Producent:** {data.get('producent', '')}")
+            st.write(f"**Grubość:** {data.get('grubosc', '')}")
+            st.write(f"**Wzór:** {data.get('wzor', '')}")
+            st.write(f"**Rodzaj okleiny:** {data.get('rodzaj_okleiny', '')}")
+            st.write(f"**Ramka:** {data.get('ramka', '')}")
+        
+        with col8:
+            st.write(f"**Seria:** {data.get('seria', '')}")
+            st.write(f"**Wkładki:** {data.get('wkladki', '')}")
+            st.write(f"**Szyba:** {data.get('szyba', '')}")
+            st.write(f"**Klamka:** {data.get('klamka', '')}")
+            st.write(f"**Dostawka:** {data.get('dostawka', '')}")
+        
+        st.markdown("#### 💬 Uwagi")
+        if data.get('uwagi_montera'):
+            st.markdown("**Uwagi montera:**")
+            st.text(data.get('uwagi_montera', ''))
+        if data.get('uwagi_klienta'):
+            st.markdown("**Uwagi dla klienta:**")
+            st.text(data.get('uwagi_klienta', ''))
+        if data.get('opcje_dodatkowe'):
+            st.markdown("**Opcje dodatkowe:**")
+            st.text(data.get('opcje_dodatkowe', ''))
     
     # PDF poza formularzem
     if st.button(f"📄 Pobierz PDF", key=f"pdf_download_{key_suffix}"):
@@ -666,125 +962,201 @@ def display_podlogi_protocol(db, data, doc_id):
     
     key_suffix = f"podlogi_{doc_id}"
     
-    with st.form(f"edit_protocol_{key_suffix}"):
-        # Podstawowe informacje
+    # Sprawdź czy użytkownik może edytować
+    if can_edit_records():
+        # Tryb edycji - pokaż formularz
+        with st.form(f"edit_protocol_{key_suffix}"):
+            # Podstawowe informacje
+            st.markdown("#### 📋 Podstawowe informacje")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                pomieszczenie = st.text_input("Pomieszczenie:", value=data.get('pomieszczenie', ''), key=f"pomieszczenie_{key_suffix}")
+                telefon = st.text_input("Telefon:", value=data.get('telefon', ''), key=f"telefon_{key_suffix}")
+                monter_id = st.text_input("Monter:", value=data.get('monter_id', ''), key=f"monter_id_{key_suffix}")
+            
+            with col2:
+                data_utworzenia = st.text_input("Data utworzenia:", value=str(data.get('data_utworzenia', '')), disabled=True, key=f"data_utworzenia_{key_suffix}")
+                status = st.selectbox("Status:", ["szkic", "pomiary", "aktywny", "zakończony", "anulowany"], 
+                                    index=["szkic", "pomiary", "aktywny", "zakończony", "anulowany"].index(data.get('status', 'szkic')), 
+                                    key=f"status_{key_suffix}")
+            
+            # System montażu
+            st.markdown("#### 🔨 System montażu")
+            col3, col4 = st.columns(2)
+            
+            with col3:
+                system_montazu = st.text_input("System montażu:", value=data.get('system_montazu', ''), key=f"system_montazu_{key_suffix}")
+                podklad = st.text_input("Podkład:", value=data.get('podklad', ''), key=f"podklad_{key_suffix}")
+            
+            with col4:
+                mdf_mozliwy = st.text_input("MDF możliwy:", value=data.get('mdf_mozliwy', ''), key=f"mdf_mozliwy_{key_suffix}")
+            
+            # Pomiary listw
+            st.markdown("#### 📏 Pomiary listw")
+            col5, col6, col7, col8, col9 = st.columns(5)
+            
+            with col5:
+                nw = st.number_input("NW:", min_value=0, value=int(data.get('nw', 0)), key=f"nw_{key_suffix}")
+            with col6:
+                nz = st.number_input("NZ:", min_value=0, value=int(data.get('nz', 0)), key=f"nz_{key_suffix}")
+            with col7:
+                l = st.number_input("Ł:", min_value=0, value=int(data.get('l', 0)), key=f"l_{key_suffix}")
+            with col8:
+                zl = st.number_input("ZL:", min_value=0, value=int(data.get('zl', 0)), key=f"zl_{key_suffix}")
+            with col9:
+                zp = st.number_input("ZP:", min_value=0, value=int(data.get('zp', 0)), key=f"zp_{key_suffix}")
+            
+            suma_listw = nw + nz + l + zl + zp
+            st.markdown(f"**SUMA LISTW: {suma_listw} szt.**")
+            
+            # Listwy progowe
+            st.markdown("#### 🚪 Listwy progowe")
+            col10, col11, col12 = st.columns(3)
+            
+            with col10:
+                listwy_jaka = st.text_input("Jaka:", value=data.get('listwy_jaka', ''), key=f"listwy_jaka_{key_suffix}")
+            with col11:
+                listwy_ile = st.text_input("Ile:", value=data.get('listwy_ile', ''), key=f"listwy_ile_{key_suffix}")
+            with col12:
+                listwy_gdzie = st.text_input("Gdzie:", value=data.get('listwy_gdzie', ''), key=f"listwy_gdzie_{key_suffix}")
+            
+            # Dane produktu
+            st.markdown("#### 🏷️ Dane produktu")
+            col13, col14 = st.columns(2)
+            
+            with col13:
+                rodzaj_podlogi = st.text_input("Rodzaj podłogi:", value=data.get('rodzaj_podlogi', ''), key=f"rodzaj_podlogi_{key_suffix}")
+                seria = st.text_input("Seria:", value=data.get('seria', ''), key=f"seria_{key_suffix}")
+                kolor = st.text_input("Kolor:", value=data.get('kolor', ''), key=f"kolor_{key_suffix}")
+            
+            with col14:
+                folia = st.text_input("Folia:", value=data.get('folia', ''), key=f"folia_{key_suffix}")
+                listwa_przypodlogowa = st.text_input("Listwa przypodłogowa:", value=data.get('listwa_przypodlogowa', ''), key=f"listwa_przypodlogowa_{key_suffix}")
+            
+            # Uwagi
+            st.markdown("#### 💬 Uwagi")
+            uwagi_montera = st.text_area("Uwagi montera:", value=data.get('uwagi_montera', ''), height=100, key=f"uwagi_montera_{key_suffix}")
+            uwagi = st.text_area("Uwagi dla klienta:", value=data.get('uwagi', ''), height=100, key=f"uwagi_{key_suffix}")
+            
+            # Wykonawcy
+            st.markdown("#### 👥 Wykonawcy")
+            sprzedawca_id = st.text_input("Sprzedawca:", value=data.get('sprzedawca_id', ''), key=f"sprzedawca_id_{key_suffix}")
+            
+            # Ostrzeżenie
+            st.warning("⚠️ UWAGA!! Podłoże powinno być suche i równe!!")
+            
+            # Przyciski
+            st.markdown("---")
+            submit_button = st.form_submit_button("💾 Zapisz zmiany", type="primary")
+            
+            if submit_button:
+                updated_data = {
+                    'pomieszczenie': pomieszczenie,
+                    'telefon': telefon,
+                    'monter_id': monter_id,
+                    'status': status,
+                    'system_montazu': system_montazu,
+                    'podklad': podklad,
+                    'mdf_mozliwy': mdf_mozliwy,
+                    'nw': nw,
+                    'nz': nz,
+                    'l': l,
+                    'zl': zl,
+                    'zp': zp,
+                    'listwy_jaka': listwy_jaka,
+                    'listwy_ile': listwy_ile,
+                    'listwy_gdzie': listwy_gdzie,
+                    'rodzaj_podlogi': rodzaj_podlogi,
+                    'seria': seria,
+                    'kolor': kolor,
+                    'folia': folia,
+                    'listwa_przypodlogowa': listwa_przypodlogowa,
+                    'uwagi_montera': uwagi_montera,
+                    'uwagi': uwagi,
+                    'sprzedawca_id': sprzedawca_id,
+                    'data_ostatniej_modyfikacji': datetime.now()
+                }
+                
+                success = update_document(db, 'podlogi', doc_id, updated_data)
+                if success:
+                    st.success("✅ Protokół został zaktualizowany!")
+                    st.rerun()
+                else:
+                    st.error("❌ Błąd podczas zapisywania protokołu")
+    else:
+        # Tryb podglądu - pokaż dane w formie tylko do odczytu
         st.markdown("#### 📋 Podstawowe informacje")
         col1, col2 = st.columns(2)
         
         with col1:
-            pomieszczenie = st.text_input("Pomieszczenie:", value=data.get('pomieszczenie', ''), key=f"pomieszczenie_{key_suffix}")
-            telefon = st.text_input("Telefon:", value=data.get('telefon', ''), key=f"telefon_{key_suffix}")
-            monter_id = st.text_input("Monter:", value=data.get('monter_id', ''), key=f"monter_id_{key_suffix}")
+            st.write(f"**Pomieszczenie:** {data.get('pomieszczenie', '')}")
+            st.write(f"**Telefon:** {data.get('telefon', '')}")
+            st.write(f"**Monter:** {data.get('monter_id', '')}")
         
         with col2:
-            data_utworzenia = st.text_input("Data utworzenia:", value=str(data.get('data_utworzenia', '')), disabled=True, key=f"data_utworzenia_{key_suffix}")
-            status = st.selectbox("Status:", ["szkic", "pomiary", "aktywny", "zakończony", "anulowany"], 
-                                index=["szkic", "pomiary", "aktywny", "zakończony", "anulowany"].index(data.get('status', 'szkic')), 
-                                key=f"status_{key_suffix}")
+            st.write(f"**Data utworzenia:** {data.get('data_utworzenia', '')}")
+            st.write(f"**Status:** {data.get('status', '')}")
         
-        # System montażu
         st.markdown("#### 🔨 System montażu")
         col3, col4 = st.columns(2)
         
         with col3:
-            system_montazu = st.text_input("System montażu:", value=data.get('system_montazu', ''), key=f"system_montazu_{key_suffix}")
-            podklad = st.text_input("Podkład:", value=data.get('podklad', ''), key=f"podklad_{key_suffix}")
+            st.write(f"**System montażu:** {data.get('system_montazu', '')}")
+            st.write(f"**Podkład:** {data.get('podklad', '')}")
         
         with col4:
-            mdf_mozliwy = st.text_input("MDF możliwy:", value=data.get('mdf_mozliwy', ''), key=f"mdf_mozliwy_{key_suffix}")
+            st.write(f"**MDF możliwy:** {data.get('mdf_mozliwy', '')}")
         
-        # Pomiary listw
         st.markdown("#### 📏 Pomiary listw")
         col5, col6, col7, col8, col9 = st.columns(5)
         
         with col5:
-            nw = st.number_input("NW:", min_value=0, value=int(data.get('nw', 0)), key=f"nw_{key_suffix}")
+            st.write(f"**NW:** {data.get('nw', 0)}")
         with col6:
-            nz = st.number_input("NZ:", min_value=0, value=int(data.get('nz', 0)), key=f"nz_{key_suffix}")
+            st.write(f"**NZ:** {data.get('nz', 0)}")
         with col7:
-            l = st.number_input("Ł:", min_value=0, value=int(data.get('l', 0)), key=f"l_{key_suffix}")
+            st.write(f"**Ł:** {data.get('l', 0)}")
         with col8:
-            zl = st.number_input("ZL:", min_value=0, value=int(data.get('zl', 0)), key=f"zl_{key_suffix}")
+            st.write(f"**ZL:** {data.get('zl', 0)}")
         with col9:
-            zp = st.number_input("ZP:", min_value=0, value=int(data.get('zp', 0)), key=f"zp_{key_suffix}")
+            st.write(f"**ZP:** {data.get('zp', 0)}")
         
-        suma_listw = nw + nz + l + zl + zp
+        suma_listw = (data.get('nw', 0) + data.get('nz', 0) + data.get('l', 0) + 
+                     data.get('zl', 0) + data.get('zp', 0))
         st.markdown(f"**SUMA LISTW: {suma_listw} szt.**")
         
-        # Listwy progowe
         st.markdown("#### 🚪 Listwy progowe")
         col10, col11, col12 = st.columns(3)
         
         with col10:
-            listwy_jaka = st.text_input("Jaka:", value=data.get('listwy_jaka', ''), key=f"listwy_jaka_{key_suffix}")
+            st.write(f"**Jaka:** {data.get('listwy_jaka', '')}")
         with col11:
-            listwy_ile = st.text_input("Ile:", value=data.get('listwy_ile', ''), key=f"listwy_ile_{key_suffix}")
+            st.write(f"**Ile:** {data.get('listwy_ile', '')}")
         with col12:
-            listwy_gdzie = st.text_input("Gdzie:", value=data.get('listwy_gdzie', ''), key=f"listwy_gdzie_{key_suffix}")
+            st.write(f"**Gdzie:** {data.get('listwy_gdzie', '')}")
         
-        # Dane produktu
         st.markdown("#### 🏷️ Dane produktu")
         col13, col14 = st.columns(2)
         
         with col13:
-            rodzaj_podlogi = st.text_input("Rodzaj podłogi:", value=data.get('rodzaj_podlogi', ''), key=f"rodzaj_podlogi_{key_suffix}")
-            seria = st.text_input("Seria:", value=data.get('seria', ''), key=f"seria_{key_suffix}")
-            kolor = st.text_input("Kolor:", value=data.get('kolor', ''), key=f"kolor_{key_suffix}")
+            st.write(f"**Rodzaj podłogi:** {data.get('rodzaj_podlogi', '')}")
+            st.write(f"**Seria:** {data.get('seria', '')}")
+            st.write(f"**Kolor:** {data.get('kolor', '')}")
         
         with col14:
-            folia = st.text_input("Folia:", value=data.get('folia', ''), key=f"folia_{key_suffix}")
-            listwa_przypodlogowa = st.text_input("Listwa przypodłogowa:", value=data.get('listwa_przypodlogowa', ''), key=f"listwa_przypodlogowa_{key_suffix}")
+            st.write(f"**Folia:** {data.get('folia', '')}")
+            st.write(f"**Listwa przypodłogowa:** {data.get('listwa_przypodlogowa', '')}")
         
-        # Uwagi
         st.markdown("#### 💬 Uwagi")
-        uwagi_montera = st.text_area("Uwagi montera:", value=data.get('uwagi_montera', ''), height=100, key=f"uwagi_montera_{key_suffix}")
-        uwagi = st.text_area("Uwagi dla klienta:", value=data.get('uwagi', ''), height=100, key=f"uwagi_{key_suffix}")
+        if data.get('uwagi_montera'):
+            st.markdown("**Uwagi montera:**")
+            st.text(data.get('uwagi_montera', ''))
+        if data.get('uwagi'):
+            st.markdown("**Uwagi dla klienta:**")
+            st.text(data.get('uwagi', ''))
         
-        # Wykonawcy
-        st.markdown("#### 👥 Wykonawcy")
-        sprzedawca_id = st.text_input("Sprzedawca:", value=data.get('sprzedawca_id', ''), key=f"sprzedawca_id_{key_suffix}")
-        
-        # Ostrzeżenie
         st.warning("⚠️ UWAGA!! Podłoże powinno być suche i równe!!")
-        
-        # Przyciski
-        st.markdown("---")
-        submit_button = st.form_submit_button("💾 Zapisz zmiany", type="primary")
-        
-        if submit_button:
-            updated_data = {
-                'pomieszczenie': pomieszczenie,
-                'telefon': telefon,
-                'monter_id': monter_id,
-                'status': status,
-                'system_montazu': system_montazu,
-                'podklad': podklad,
-                'mdf_mozliwy': mdf_mozliwy,
-                'nw': nw,
-                'nz': nz,
-                'l': l,
-                'zl': zl,
-                'zp': zp,
-                'listwy_jaka': listwy_jaka,
-                'listwy_ile': listwy_ile,
-                'listwy_gdzie': listwy_gdzie,
-                'rodzaj_podlogi': rodzaj_podlogi,
-                'seria': seria,
-                'kolor': kolor,
-                'folia': folia,
-                'listwa_przypodlogowa': listwa_przypodlogowa,
-                'uwagi_montera': uwagi_montera,
-                'uwagi': uwagi,
-                'sprzedawca_id': sprzedawca_id,
-                'data_ostatniej_modyfikacji': datetime.now()
-            }
-            
-            success = update_document(db, 'podlogi', doc_id, updated_data)
-            if success:
-                st.success("✅ Protokół został zaktualizowany!")
-                st.rerun()
-            else:
-                st.error("❌ Błąd podczas zapisywania protokołu")
     
     # PDF poza formularzem
     if st.button(f"📄 Pobierz PDF", key=f"pdf_download_{key_suffix}"):

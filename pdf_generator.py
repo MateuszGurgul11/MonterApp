@@ -397,7 +397,51 @@ class PDFGenerator:
         # Połącz wszystkie pola przecinkami i spacjami
         return ', '.join(fields) if fields else ''
 
-    def create_signature_section(self, story, full_product_name=None):
+    def generate_full_frame_name(self, data):
+        """Generuje pełną nazwę ościeżnicy z dostępnych pól danych"""
+        # Lista pól do użycia w pełnej nazwie ościeżnicy w odpowiedniej kolejności
+        fields = []
+        
+        # Szerokość skrzydła
+        szerokosc_skrzydla = data.get('szerokosc_skrzydla', '')
+        if szerokosc_skrzydla:
+            fields.append(szerokosc_skrzydla)
+        
+         # Kierunek i typ drzwi
+        strona_otw = data.get('strona_otwierania', {})
+        typ_drzwi = data.get('typ_drzwi', '')
+        kierunek_typ = ""
+        
+        if strona_otw.get('lewe_przyl'):
+            kierunek_typ = "lewe"
+        elif strona_otw.get('prawe_przyl'):
+            kierunek_typ = "prawe"
+        elif strona_otw.get('lewe_odwr'):
+            kierunek_typ = "lewe"
+        elif strona_otw.get('prawe_odwr'):
+            kierunek_typ = "prawe"
+            
+        if kierunek_typ and typ_drzwi:
+            fields.append(f"{kierunek_typ}_{typ_drzwi}")
+        elif kierunek_typ:
+            fields.append(kierunek_typ)
+        elif typ_drzwi:
+            fields.append(typ_drzwi)
+        
+        # Kolor ościeżnicy
+        kolor_osc = data.get('kolor_osc', '')
+        if kolor_osc:
+            fields.append(kolor_osc)
+        
+        # Ościeżnica
+        oscieznica = data.get('oscieznica', '')
+        if oscieznica:
+            fields.append(oscieznica)
+        
+        # Połącz wszystkie pola przecinkami i spacjami
+        return ', '.join(fields) if fields else ''
+
+    def create_signature_section(self, story, full_product_name=None, data=None):
         """Tworzy sekcję z polami do podpisów i opcjonalnie pełną nazwą produktu"""
         # Dodaj odstęp przed podpisami
         story.append(Spacer(1, 8*mm))
@@ -430,15 +474,27 @@ class PDFGenerator:
         story.append(signature_table)
         story.append(Spacer(1, 5*mm))
         
-        # Dodaj pełną nazwę produktu jeśli została podana
+        # Dodaj pełną nazwę skrzydła jeśli została podana
         if full_product_name:
             story.append(Spacer(1, 3*mm))
             full_name_para = Paragraph(
-                f"<b>Nazwa pełna:</b> {self.safe_text(full_product_name)}",
+                f"<b>Pełna nazwa Skrzydła:</b> {self.safe_text(full_product_name)}",
                 self.styles['CustomNormal']
             )
             story.append(full_name_para)
             story.append(Spacer(1, 2*mm))
+        
+        # Dodaj pełną nazwę ościeżnicy jeśli dostępne są dane
+        if data:
+            full_frame_name = self.generate_full_frame_name(data)
+            if full_frame_name:
+                story.append(Spacer(1, 3*mm))
+                full_frame_para = Paragraph(
+                    f"<b>Pełna nazwa Ościeżnica:</b> {self.safe_text(full_frame_name)}",
+                    self.styles['CustomNormal']
+                )
+                story.append(full_frame_para)
+                story.append(Spacer(1, 2*mm))
 
     def create_header(self, story, title):
         title_para = Paragraph(self.safe_text(title), self.styles['CustomTitle'])
@@ -481,13 +537,17 @@ class PDFGenerator:
         table_data = []
         for key, value in data_dict.items():
             if value:
-                table_data.append([self.safe_text(f"{key}:") , self.safe_text(str(value))])
+                # Użyj Paragraph dla lepszego zawijania tekstu
+                key_para = Paragraph(self.safe_text(f"{key}:"), self.styles['CustomNormal'])
+                value_para = Paragraph(self.safe_text(str(value)), self.styles['CustomNormal'])
+                table_data.append([key_para, value_para])
 
         # Jeśli brak danych, dodaj placeholder
         if not table_data:
-            table_data.append(["Brak danych", ""])
+            placeholder_para = Paragraph("Brak danych", self.styles['CustomNormal'])
+            table_data.append([placeholder_para, ""])
 
-        inner_table = Table(table_data)
+        inner_table = Table(table_data, colWidths=[2.5*cm, 5.5*cm])
         inner_table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, -1), self.font_name),
             ('FONTSIZE', (0, 0), (-1, -1), 8),
@@ -497,10 +557,72 @@ class PDFGenerator:
             ('RIGHTPADDING', (0, 0), (-1, -1), 4),
             ('TOPPADDING', (0, 0), (-1, -1), 1),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
-            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [colors.white, colors.HexColor('#F8F9FA')])
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [colors.white, colors.HexColor('#F8F9FA')]),
+            ('WORDWRAP', (0, 0), (-1, -1), True),  # Włącz zawijanie tekstu
         ]))
 
         # Owinięcie w tabelę jednokolumnową, by działało jako pojedynczy flowable w komórce rodzica
+        panel = Table([[subtitle], [inner_table]])
+        panel.setStyle(TableStyle([
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 5),
+            ('TOPPADDING', (0, 1), (-1, 1), 3),
+        ]))
+        return panel
+
+    def build_uwagi_panel(self, title, data_dict):
+        """Buduje panel sekcji uwag z lepszym zawijaniem tekstu dla długich opisów."""
+        subtitle = Paragraph(self.safe_text(title), self.styles['CustomSubtitle'])
+
+        table_data = []
+        for key, value in data_dict.items():
+            if value:
+                # Użyj Paragraph z lepszymi stylami dla zawijania
+                key_para = Paragraph(self.safe_text(f"{key}:"), self.styles['CustomNormal'])
+                
+                # Dla długich tekstów użyj specjalnego stylu z lepszym zawijaniem
+                if len(str(value)) > 50:
+                    # Stwórz specjalny styl dla długich tekstów
+                    long_text_style = ParagraphStyle(
+                        name='LongTextStyle',
+                        parent=self.styles['CustomNormal'],
+                        fontSize=8,
+                        spaceAfter=2,
+                        alignment=TA_LEFT,
+                        fontName=self.font_name,
+                        wordWrap='CJK',  # Lepsze zawijanie
+                        splitLongWords=True,  # Dziel długie słowa
+                    )
+                    value_para = Paragraph(self.safe_text(str(value)), long_text_style)
+                else:
+                    value_para = Paragraph(self.safe_text(str(value)), self.styles['CustomNormal'])
+                
+                table_data.append([key_para, value_para])
+
+        # Jeśli brak danych, dodaj placeholder
+        if not table_data:
+            placeholder_para = Paragraph("Brak danych", self.styles['CustomNormal'])
+            table_data.append([placeholder_para, ""])
+
+        # Użyj węższych kolumn dla lepszego zawijania
+        inner_table = Table(table_data, colWidths=[2.0*cm, 6.0*cm])
+        inner_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), self.font_name),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('FONTNAME', (0, 0), (0, -1), self.font_bold),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [colors.white, colors.HexColor('#F8F9FA')]),
+            ('WORDWRAP', (0, 0), (-1, -1), True),  # Włącz zawijanie tekstu
+        ]))
+
+        # Owinięcie w tabelę jednokolumnową
         panel = Table([[subtitle], [inner_table]])
         panel.setStyle(TableStyle([
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -623,7 +745,7 @@ class PDFGenerator:
                     return candidate
         return None
 
-    def create_door_options_row(self, selected_opening, szerokosc_otworu=None, dodatkowe_info=None, pomieszczenie=None):
+    def create_door_options_row(self, selected_opening, szerokosc_skrzydla=None, dodatkowe_info=None, pomieszczenie=None):
         """Tworzy rząd ze wszystkimi opcjami otwierania drzwi i zaznacza wybraną z uproszczonymi etykietami"""
         
         # Definicje wszystkich opcji w kolejności
@@ -673,14 +795,14 @@ class PDFGenerator:
 
                 if is_selected:
                     if pomieszczenie:
-                        top_label = f"Wybrane" + "\n" + pomieszczenie
+                        top_label = f"Wybrane {pomieszczenie}"
                     else:
                         top_label = "Wybrane"
-                        
+
                     # Środek: szerokość jako cyfra
-                    if szerokosc_otworu:
+                    if szerokosc_skrzydla:
                         # Wyciągnij tylko cyfrę ze stringa "XX cm"
-                        szerokosc_cyfra = szerokosc_otworu.replace(" cm", "").replace("cm", "").strip()
+                        szerokosc_cyfra = szerokosc_skrzydla.replace(" cm", "").replace("cm", "").strip()
                         center_width_text = szerokosc_cyfra
                     else:
                         center_width_text = None
@@ -807,7 +929,7 @@ class PDFGenerator:
         
         # Dodaj opcje otwierania drzwi pod tabelkami
         strona_otw = data.get('strona_otwierania', {})
-        szerokosc = data.get('szerokosc_otworu', '')
+        szerokosc = data.get('szerokosc_skrzydla', '')
         szerokosc_text = f"{szerokosc} cm" if szerokosc else None
         
         # Dodaj nagłówek sekcji
@@ -857,7 +979,7 @@ class PDFGenerator:
             wykonawcy_info["Data sprzedaży"] = data.get('data_sprzedaz').strftime("%d.%m.%Y %H:%M")
         
         if uwagi_info or wykonawcy_info:
-            uwagi_panel = self.build_info_panel("💬 UWAGI I OPCJE", uwagi_info) if uwagi_info else ""
+            uwagi_panel = self.build_uwagi_panel("💬 UWAGI I OPCJE", uwagi_info) if uwagi_info else ""
             wykonawcy_panel = self.build_info_panel("👥 WYKONAWCY", wykonawcy_info) if wykonawcy_info else ""
             
             bottom_row = Table([[uwagi_panel, wykonawcy_panel]], colWidths=[8.0*cm, 8.0*cm])
@@ -871,7 +993,7 @@ class PDFGenerator:
         
         # Sekcja podpisów
         full_product_name = self.generate_full_product_name(data)
-        self.create_signature_section(story, full_product_name)
+        self.create_signature_section(story, full_product_name, data)
         
         # Stopka
         story.append(Spacer(1, 5*mm))
@@ -996,7 +1118,7 @@ class PDFGenerator:
         
         # Ułóż strona otwierania i podpisy obok siebie
         strona_panel = self.build_info_panel("🚪 STRONA OTWIERANIA", strona_info)
-        podpisy_panel = self.build_info_panel("📝 PODPISY I UWAGI", podpisy_info)
+        podpisy_panel = self.build_uwagi_panel("📝 PODPISY I UWAGI", podpisy_info)
         bottom_row = Table([[strona_panel, podpisy_panel]], colWidths=[8.0*cm, 8.0*cm])
         bottom_row.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -1007,7 +1129,7 @@ class PDFGenerator:
         
         # Sekcja podpisów
         full_product_name = self.generate_full_product_name(data)
-        self.create_signature_section(story, full_product_name)
+        self.create_signature_section(story, full_product_name, data)
         
         # Stopka z informacjami o systemie
         story.append(Spacer(1, 5*mm))
@@ -1110,7 +1232,7 @@ class PDFGenerator:
             uwagi_info["Uwagi dla klienta"] = data.get('uwagi')
         
         if uwagi_info:
-            uwagi_panel = self.build_info_panel("💬 UWAGI", uwagi_info)
+            uwagi_panel = self.build_uwagi_panel("💬 UWAGI", uwagi_info)
             story.append(uwagi_panel)
             story.append(Spacer(1, 3*mm))
         
@@ -1152,7 +1274,7 @@ class PDFGenerator:
         
         # Sekcja podpisów
         full_product_name = self.generate_full_product_name(data)
-        self.create_signature_section(story, full_product_name)
+        self.create_signature_section(story, full_product_name, data)
         
         # Stopka
         story.append(Spacer(1, 5*mm))

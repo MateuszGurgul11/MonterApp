@@ -59,6 +59,41 @@ def authenticate_user(username, password):
             return users[username]
     return None
 
+def has_permission(required_role):
+    """Sprawdza czy użytkownik ma wymaganą rolę"""
+    if not st.session_state.get('logged_in', False):
+        return False
+    
+    user_role = st.session_state.get('user_role', '')
+    
+    # Hierarchia ról: admin > sprzedawca > monter
+    role_hierarchy = {
+        'admin': 3,
+        'sprzedawca': 2,
+        'monter': 1
+    }
+    
+    user_level = role_hierarchy.get(user_role, 0)
+    required_level = role_hierarchy.get(required_role, 0)
+    
+    return user_level >= required_level
+
+def can_access_admin():
+    """Sprawdza czy użytkownik może uzyskać dostęp do panelu administratora"""
+    return has_permission('admin')
+
+def can_delete_records():
+    """Sprawdza czy użytkownik może usuwać rekordy"""
+    return has_permission('admin')
+
+def can_view_all_data():
+    """Sprawdza czy użytkownik może przeglądać wszystkie dane"""
+    return has_permission('sprzedawca')  # Sprzedawcy i admin mogą przeglądać
+
+def can_edit_measurements():
+    """Sprawdza czy użytkownik może edytować pomiary"""
+    return has_permission('monter')  # Monterzy i wyżej mogą edytować pomiary
+
 def login_form():
     """Formularz logowania"""
     # Nie dodawaj tytułu tutaj - jest w main()
@@ -90,7 +125,7 @@ def admin_panel():
     """Panel administracyjny do zarządzania użytkownikami"""
     st.header("👨‍💼 Panel Administratora")
     
-    if st.session_state.user_role != "admin":
+    if not can_access_admin():
         st.error("❌ Brak uprawnień administratora")
         return
     
@@ -150,7 +185,7 @@ def admin_panel():
             new_name = st.text_input("📝 Imię i nazwisko:")
             new_password = st.text_input("🔑 Hasło:", type="password")
             new_password_confirm = st.text_input("🔑 Potwierdź hasło:", type="password")
-            new_role = st.selectbox("👑 Rola:", ["user", "admin"])
+            new_role = st.selectbox("👑 Rola:", ["sprzedawca", "monter", "admin"])
             
             submit_new_user = st.form_submit_button("➕ Dodaj użytkownika", type="primary")
             
@@ -182,15 +217,18 @@ def admin_panel():
         st.subheader("🔧 Ustawienia systemu")
         
         st.info("📊 **Statystyki systemu:**")
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("👥 Użytkownicy", len(users))
         with col2:
             admins = len([u for u in users.values() if u.get("role") == "admin"])
             st.metric("👨‍💼 Administratorzy", admins)
         with col3:
-            regular_users = len([u for u in users.values() if u.get("role") == "user"])
-            st.metric("👤 Zwykli użytkownicy", regular_users)
+            sprzedawcy = len([u for u in users.values() if u.get("role") == "sprzedawca"])
+            st.metric("💰 Sprzedawcy", sprzedawcy)
+        with col4:
+            monterzy = len([u for u in users.values() if u.get("role") == "monter"])
+            st.metric("🔨 Monterzy", monterzy)
         
         st.markdown("---")
         
@@ -222,9 +260,16 @@ def main_interface():
     # Header z informacją o użytkowniku
     col1, col2, col3 = st.columns([2, 1, 1])
     with col1:
-        st.write(f"👋 Witaj, **{st.session_state.user_name}** ({st.session_state.user_role})")
+        # Wyświetl rolę z odpowiednią ikoną
+        role_icons = {
+            'admin': '👑',
+            'sprzedawca': '💰',
+            'monter': '🔨'
+        }
+        role_icon = role_icons.get(st.session_state.user_role, '👤')
+        st.write(f"👋 Witaj, **{st.session_state.user_name}** ({role_icon} {st.session_state.user_role})")
     with col2:
-        if st.session_state.user_role == "admin":
+        if can_access_admin():
             if st.button("👨‍💼 Panel Admina"):
                 st.session_state.show_admin_panel = True
                 st.rerun()
@@ -289,7 +334,7 @@ def main_interface():
                         })
                     st.dataframe(display, use_container_width=True, hide_index=True)
 
-                    if st.session_state.user_role == "admin":  # Tylko admin może usuwać
+                    if can_delete_records():  # Tylko admin może usuwać
                         st.markdown("**Akcje administratora**")
                         col_d1, col_d2 = st.columns([3,1])
                         with col_d1:
@@ -327,7 +372,7 @@ def main_interface():
                         })
                     st.dataframe(display_we, use_container_width=True, hide_index=True)
 
-                    if st.session_state.user_role == "admin":
+                    if can_delete_records():
                         st.markdown("**Akcje administratora**")
                         col_we1, col_we2 = st.columns([3,1])
                         with col_we1:
@@ -364,7 +409,7 @@ def main_interface():
                         })
                     st.dataframe(display, use_container_width=True, hide_index=True)
 
-                    if st.session_state.user_role == "admin":
+                    if can_delete_records():
                         st.markdown("**Akcje administratora**")
                         col_p1, col_p2 = st.columns([3,1])
                         with col_p1:
@@ -402,7 +447,7 @@ def main_interface():
                         })
                     st.dataframe(display, use_container_width=True, hide_index=True)
 
-                    if st.session_state.user_role == "admin":
+                    if can_delete_records():
                         st.markdown("**Akcje administratora**")
                         col_s1, col_s2 = st.columns([3,1])
                         with col_s1:
