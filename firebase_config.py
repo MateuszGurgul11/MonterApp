@@ -1064,13 +1064,5 @@ def update_draft_images(db, draft_id, images_data):
         st.error(f"❌ Błąd podczas aktualizacji zdjęć: {e}")
         return False
 
-# Funkcja inicjalizacyjna do wywołania przy starcie aplikacji
-@st.cache_resource
-def setup_database():
-    """
-    Inicjalizuje bazę danych i tworzy niezbędne kolekcje
-    """
-    db = initialize_firebase()
-    create_tables_if_not_exist(db)
-    return db
+
 
