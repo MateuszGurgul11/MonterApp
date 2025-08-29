@@ -10,53 +10,33 @@ from firebase_config import (
     delete_record,
     get_drafts_for_monter,
     delete_draft,
+    # Nowe funkcje do zarządzania użytkownikami
+    get_all_users,
+    get_user_by_username,
+    authenticate_user_firebase,
+    create_user,
+    update_user,
+    delete_user,
+    update_last_login,
+    init_default_users,
 )
 
-# Plik z użytkownikami
-USERS_FILE = "users.json"
-
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
-
-def load_users():
-    if os.path.exists(USERS_FILE):
-        try:
-            with open(USERS_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except:
-            return {}
-    return {}
-
-def save_users(users):
-    try:
-        with open(USERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(users, f, indent=2, ensure_ascii=False)
-        return True
-    except:
-        return False
-
 def init_users():
-    users = load_users()
-    if not users:
-        # Domyślny admin
-        users = {
-            "admin": {
-                "password": hash_password("admin123"),
-                "role": "admin",
-                "name": "Administrator"
-            }
-        }
-        save_users(users)
-        st.info("🔧 Utworzono domyślnego użytkownika: admin / admin123")
-    return users
+    """Inicjalizuje użytkowników w bazie Firebase"""
+    db = setup_database()
+    if db:
+        init_default_users(db)
+    return db
 
 def authenticate_user(username, password):
-    """Sprawdza dane logowania"""
-    users = load_users()
-    if username in users:
-        hashed_password = hash_password(password)
-        if users[username]["password"] == hashed_password:
-            return users[username]
+    """Sprawdza dane logowania w Firebase"""
+    db = setup_database()
+    if db:
+        user = authenticate_user_firebase(db, username, password)
+        if user:
+            # Aktualizuj ostatnie logowanie
+            update_last_login(db, username)
+        return user
     return None
 
 def has_permission(required_role):
@@ -129,7 +109,12 @@ def admin_panel():
         st.error("❌ Brak uprawnień administratora")
         return
     
-    users = load_users()
+    db = setup_database()
+    if not db:
+        st.error("❌ Nie można połączyć z bazą danych")
+        return
+    
+    users = get_all_users(db)
     
     tab1, tab2, tab3 = st.tabs(["👥 Lista użytkowników", "➕ Dodaj użytkownika", "🔧 Ustawienia"])
     
@@ -166,12 +151,12 @@ def admin_panel():
                 with col2:
                     if st.button("🗑️ Usuń", key="delete_user_btn"):
                         if user_to_delete != "admin":
-                            del users[user_to_delete]
-                            if save_users(users):
+                            success, message = delete_user(db, user_to_delete)
+                            if success:
                                 st.success(f"✅ Użytkownik '{user_to_delete}' został usunięty")
                                 st.rerun()
                             else:
-                                st.error("❌ Błąd podczas usuwania użytkownika")
+                                st.error(f"❌ {message}")
                         else:
                             st.error("❌ Nie można usunąć administratora")
         else:
@@ -192,20 +177,24 @@ def admin_panel():
             if submit_new_user:
                 if new_username and new_name and new_password and new_password_confirm:
                     if new_password == new_password_confirm:
-                        if new_username not in users:
+                        # Sprawdź czy użytkownik już istnieje
+                        existing_user = get_user_by_username(db, new_username)
+                        if not existing_user:
                             # Dodaj nowego użytkownika
-                            users[new_username] = {
-                                "password": hash_password(new_password),
-                                "role": new_role,
-                                "name": new_name,
-                                "created_by": st.session_state.username
-                            }
+                            success, message = create_user(
+                                db, 
+                                new_username, 
+                                new_password, 
+                                new_role, 
+                                new_name, 
+                                st.session_state.username
+                            )
                             
-                            if save_users(users):
+                            if success:
                                 st.success(f"✅ Użytkownik '{new_username}' został dodany")
                                 st.rerun()
                             else:
-                                st.error("❌ Błąd podczas zapisywania użytkownika")
+                                st.error(f"❌ {message}")
                         else:
                             st.error("❌ Użytkownik o tej nazwie już istnieje")
                     else:
@@ -243,11 +232,11 @@ def admin_panel():
             if reset_submit:
                 if new_admin_password and new_admin_password_confirm:
                     if new_admin_password == new_admin_password_confirm:
-                        users["admin"]["password"] = hash_password(new_admin_password)
-                        if save_users(users):
+                        success, message = update_user(db, "admin", password=new_admin_password)
+                        if success:
                             st.success("✅ Hasło administratora zostało zmienione")
                         else:
-                            st.error("❌ Błąd podczas zmiany hasła")
+                            st.error(f"❌ {message}")
                     else:
                         st.error("❌ Hasła nie są identyczne")
                 else:

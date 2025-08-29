@@ -394,6 +394,11 @@ class PDFGenerator:
         if data.get('kolor_okuc'):
             fields.append(data.get('kolor_okuc'))
         
+        # Norma/Szkic
+        norma = data.get('norma', '')
+        if norma:
+            fields.append(norma)
+        
         # Połącz wszystkie pola przecinkami i spacjami
         return ', '.join(fields) if fields else ''
 
@@ -437,6 +442,21 @@ class PDFGenerator:
         oscieznica = data.get('oscieznica', '')
         if oscieznica:
             fields.append(oscieznica)
+        
+        # Opaska
+        opaska = data.get('opaska', '')
+        if opaska:
+            fields.append(opaska)
+        
+        # Kąt zacięcia
+        kat_zaciecia = data.get('kat_zaciecia', '')
+        if kat_zaciecia:
+            fields.append(kat_zaciecia)
+        
+        # Norma/Szkic
+        norma = data.get('norma', '')
+        if norma:
+            fields.append(norma)
         
         # Połącz wszystkie pola przecinkami i spacjami
         return ', '.join(fields) if fields else ''
@@ -745,19 +765,16 @@ class PDFGenerator:
                     return candidate
         return None
 
-    def create_door_options_row(self, selected_opening, szerokosc_skrzydla=None, dodatkowe_info=None, pomieszczenie=None):
-        """Tworzy rząd ze wszystkimi opcjami otwierania drzwi i zaznacza wybraną z uproszczonymi etykietami"""
-        
-        # Definicje wszystkich opcji w kolejności
+    def create_door_options_row(self, selected_opening, szerokosc_skrzydla=None, dodatkowe_info=None, napis_nad_drzwiami=None):
         door_options = [
             {
                 'key': 'lewe_przyl',
-                'label': 'LEWE przylgowe',
+                'label': 'LEWE',
                 'files': ['lewe_przyl.png', 'lewe_przylgowe.png']
             },
             {
                 'key': 'prawe_przyl', 
-                'label': 'PRAWE przylgowe',
+                'label': 'PRAWE',
                 'files': ['prawe_przyl.png', 'prawe_przylgowe.png']
             },
             {
@@ -772,13 +789,10 @@ class PDFGenerator:
             }
         ]
         
-        # Znajdź wybrane opcje
         selected_keys = [key for key, value in selected_opening.items() if value]
         
-        # Stwórz obrazki dla każdej opcji
         option_images = []
         for option in door_options:
-            # Znajdź obraz dla tej opcji
             image_path = None
             for base_dir in self.door_image_base_dirs:
                 for filename in option['files']:
@@ -790,18 +804,15 @@ class PDFGenerator:
                     break
             
             if image_path:
-                # Sprawdź czy ta opcja jest wybrana
                 is_selected = option['key'] in selected_keys
 
                 if is_selected:
-                    if pomieszczenie:
-                        top_label = f"Wybrane {pomieszczenie}"
+                    if napis_nad_drzwiami:
+                        top_label = f"{napis_nad_drzwiami}"
                     else:
                         top_label = "Wybrane"
 
-                    # Środek: szerokość jako cyfra
                     if szerokosc_skrzydla:
-                        # Wyciągnij tylko cyfrę ze stringa "XX cm"
                         szerokosc_cyfra = szerokosc_skrzydla.replace(" cm", "").replace("cm", "").strip()
                         center_width_text = szerokosc_cyfra
                     else:
@@ -948,10 +959,10 @@ class PDFGenerator:
         elif strona_otw.get('prawe_odwr'):
             kierunek_opis = "Otwierane na prawo (odwrotna przylga)"
         
-        # Pobierz nazwę pomieszczenia
-        pomieszczenie = data.get('pomieszczenie', '')
+        # Pobierz wartość z pola "Otwierane na"
+        napis_nad_drzwiami = data.get('napis_nad_drzwiami', '')
         
-        door_options_row = self.create_door_options_row(strona_otw, szerokosc_text, kierunek_opis, pomieszczenie)
+        door_options_row = self.create_door_options_row(strona_otw, szerokosc_text, kierunek_opis, napis_nad_drzwiami)
         if door_options_row:
             story.append(door_options_row)
             story.append(Spacer(1, 5*mm))
@@ -959,8 +970,6 @@ class PDFGenerator:
         
         # Uwagi i wykonawcy w jednym wierszu
         uwagi_info = {}
-        if data.get('typ_drzwi'):
-            uwagi_info["Typ drzwi"] = data.get('typ_drzwi')
         if data.get('opcje_dodatkowe'):
             uwagi_info["Opcje dodatkowe"] = data.get('opcje_dodatkowe')
         if data.get('uwagi_montera'):

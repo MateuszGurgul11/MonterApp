@@ -90,6 +90,160 @@ def setup_database():
         st.error(f"❌ Krytyczny błąd inicjalizacji: {e}")
         return None
 
+# ============================================================================
+# FUNKCJE ZARZĄDZANIA UŻYTKOWNIKAMI
+# ============================================================================
+
+def hash_password(password):
+    """Hashuje hasło używając SHA-256"""
+    import hashlib
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def get_all_users(db):
+    """Pobiera wszystkich użytkowników z bazy danych"""
+    try:
+        users_ref = db.collection('users')
+        users = users_ref.stream()
+        users_dict = {}
+        for user in users:
+            users_dict[user.id] = user.to_dict()
+        return users_dict
+    except Exception as e:
+        st.error(f"❌ Błąd podczas pobierania użytkowników: {e}")
+        return {}
+
+def get_user_by_username(db, username):
+    """Pobiera użytkownika po nazwie użytkownika"""
+    try:
+        user_ref = db.collection('users').document(username)
+        user_doc = user_ref.get()
+        if user_doc.exists:
+            return user_doc.to_dict()
+        return None
+    except Exception as e:
+        st.error(f"❌ Błąd podczas pobierania użytkownika: {e}")
+        return None
+
+def authenticate_user_firebase(db, username, password):
+    """Sprawdza dane logowania użytkownika w Firebase"""
+    try:
+        user = get_user_by_username(db, username)
+        if user:
+            hashed_password = hash_password(password)
+            if user["password"] == hashed_password:
+                return user
+        return None
+    except Exception as e:
+        st.error(f"❌ Błąd podczas uwierzytelniania: {e}")
+        return None
+
+def create_user(db, username, password, role, name, created_by=None):
+    """Tworzy nowego użytkownika w bazie danych"""
+    try:
+        # Sprawdź czy użytkownik już istnieje
+        existing_user = get_user_by_username(db, username)
+        if existing_user:
+            return False, "Użytkownik o tej nazwie już istnieje"
+        
+        # Przygotuj dane użytkownika
+        user_data = {
+            "password": hash_password(password),
+            "role": role,
+            "name": name,
+            "created_by": created_by,
+            "created_at": datetime.now(),
+            "last_login": None
+        }
+        
+        # Zapisz użytkownika
+        db.collection('users').document(username).set(user_data)
+        return True, "Użytkownik został utworzony pomyślnie"
+        
+    except Exception as e:
+        return False, f"Błąd podczas tworzenia użytkownika: {e}"
+
+def update_user(db, username, **kwargs):
+    """Aktualizuje dane użytkownika"""
+    try:
+        user_ref = db.collection('users').document(username)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            return False, "Użytkownik nie istnieje"
+        
+        # Aktualizuj tylko podane pola
+        update_data = {}
+        for key, value in kwargs.items():
+            if key == "password" and value:
+                update_data[key] = hash_password(value)
+            elif value is not None:
+                update_data[key] = value
+        
+        if update_data:
+            user_ref.update(update_data)
+        
+        return True, "Użytkownik został zaktualizowany pomyślnie"
+        
+    except Exception as e:
+        return False, f"Błąd podczas aktualizacji użytkownika: {e}"
+
+def delete_user(db, username):
+    """Usuwa użytkownika z bazy danych"""
+    try:
+        user_ref = db.collection('users').document(username)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            return False, "Użytkownik nie istnieje"
+        
+        # Nie pozwól usunąć administratora
+        user_data = user_doc.to_dict()
+        if user_data.get("role") == "admin" and username == "admin":
+            return False, "Nie można usunąć głównego administratora"
+        
+        user_ref.delete()
+        return True, "Użytkownik został usunięty pomyślnie"
+        
+    except Exception as e:
+        return False, f"Błąd podczas usuwania użytkownika: {e}"
+
+def update_last_login(db, username):
+    """Aktualizuje datę ostatniego logowania użytkownika"""
+    try:
+        db.collection('users').document(username).update({
+            "last_login": datetime.now()
+        })
+        return True
+    except Exception as e:
+        st.error(f"❌ Błąd podczas aktualizacji ostatniego logowania: {e}")
+        return False
+
+def init_default_users(db):
+    """Inicjalizuje domyślnych użytkowników jeśli baza jest pusta"""
+    try:
+        users = get_all_users(db)
+        
+        if not users:
+            # Utwórz domyślnego administratora
+            success, message = create_user(
+                db, 
+                "admin", 
+                "admin123", 
+                "admin", 
+                "Administrator"
+            )
+            
+            if success:
+                st.info("🔧 Utworzono domyślnego użytkownika: admin / admin123")
+            else:
+                st.error(f"❌ Błąd podczas tworzenia domyślnego użytkownika: {message}")
+        
+        return True
+        
+    except Exception as e:
+        st.error(f"❌ Błąd podczas inicjalizacji użytkowników: {e}")
+        return False
+
 def create_tables_if_not_exist(db):
     """
     Tworzy kolekcje w Firestore jeśli nie istnieją
