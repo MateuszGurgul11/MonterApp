@@ -349,25 +349,30 @@ class PDFGenerator:
         if szerokosc_skrzydla:
             fields.append(szerokosc_skrzydla)
             
-        # Kierunek i typ drzwi
+        # Strona otwierania (pozycja 3)
         strona_otw = data.get('strona_otwierania', {})
-        typ_drzwi = data.get('typ_drzwi', '')
-        kierunek_typ = ""
+        strona_otwierania_text = ""
         
         if strona_otw.get('lewe_przyl'):
-            kierunek_typ = "lewe"
+            strona_otwierania_text = "lewe"
         elif strona_otw.get('prawe_przyl'):
-            kierunek_typ = "prawe"
+            strona_otwierania_text = "prawe"
         elif strona_otw.get('lewe_odwr'):
-            kierunek_typ = "lewe"
+            strona_otwierania_text = "lewe"
         elif strona_otw.get('prawe_odwr'):
-            kierunek_typ = "prawe"
+            strona_otwierania_text = "prawe"
+        # Obsługa struktury dla drzwi wejściowych
+        elif strona_otw.get('lewe'):
+            strona_otwierania_text = "lewe"
+        elif strona_otw.get('prawe'):
+            strona_otwierania_text = "prawe"
             
-        if kierunek_typ and typ_drzwi:
-            fields.append(f"{kierunek_typ}_{typ_drzwi}")
-        elif kierunek_typ:
-            fields.append(kierunek_typ)
-        elif typ_drzwi:
+        if strona_otwierania_text:
+            fields.append(strona_otwierania_text)
+            
+        # Typ drzwi
+        typ_drzwi = data.get('typ_drzwi', '')
+        if typ_drzwi:
             fields.append(typ_drzwi)
             
         # Rodzaj okleiny
@@ -412,25 +417,25 @@ class PDFGenerator:
         if szerokosc_skrzydla:
             fields.append(szerokosc_skrzydla)
         
-         # Kierunek i typ drzwi
+        # Strona otwierania (pozycja 3)
         strona_otw = data.get('strona_otwierania', {})
-        typ_drzwi = data.get('typ_drzwi', '')
-        kierunek_typ = ""
+        strona_otwierania_text = ""
         
         if strona_otw.get('lewe_przyl'):
-            kierunek_typ = "lewe"
+            strona_otwierania_text = "lewe"
         elif strona_otw.get('prawe_przyl'):
-            kierunek_typ = "prawe"
+            strona_otwierania_text = "prawe"
         elif strona_otw.get('lewe_odwr'):
-            kierunek_typ = "lewe"
+            strona_otwierania_text = "lewe"
         elif strona_otw.get('prawe_odwr'):
-            kierunek_typ = "prawe"
+            strona_otwierania_text = "prawe"
             
-        if kierunek_typ and typ_drzwi:
-            fields.append(f"{kierunek_typ}_{typ_drzwi}")
-        elif kierunek_typ:
-            fields.append(kierunek_typ)
-        elif typ_drzwi:
+        if strona_otwierania_text:
+            fields.append(strona_otwierania_text)
+        
+        # Typ drzwi
+        typ_drzwi = data.get('typ_drzwi', '')
+        if typ_drzwi:
             fields.append(typ_drzwi)
         
         # Kolor ościeżnicy

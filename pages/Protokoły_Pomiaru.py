@@ -261,8 +261,8 @@ def formularz_montera_drzwi():
             "prog": prog,
             "wizjer": wizjer,
             "strona_otwierania": {
-                "lewe_przyl": strona_otwierania == "LEWE przylgowe",
-                "prawe_przyl": strona_otwierania == "PRAWE przylgowe",
+                "lewe_przyl": strona_otwierania == "LEWE",
+                "prawe_przyl": strona_otwierania == "PRAWE",
                 "lewe_odwr": strona_otwierania == "LEWE odwrotna przylga",
                 "prawe_odwr": strona_otwierania == "PRAWE odwrotna przylga"
             },
