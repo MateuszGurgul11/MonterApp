@@ -72,7 +72,9 @@ def can_view_all_data():
 
 def can_edit_measurements():
     """Sprawdza czy użytkownik może edytować pomiary"""
-    return has_permission('monter')  # Monterzy i wyżej mogą edytować pomiary
+    user_role = st.session_state.get('user_role', '')
+    # Tylko monterzy i sprzedawcy mogą edytować pomiary (nie admin)
+    return user_role in ['monter', 'sprzedawca']
 
 def login_form():
     """Formularz logowania"""
