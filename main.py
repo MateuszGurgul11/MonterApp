@@ -523,6 +523,15 @@ def main():
         """, unsafe_allow_html=True)
         
         main_interface()
+        
+        # Stopka z linkiem do Next Marketing Studio
+        st.markdown("""
+        <div style="text-align: right; margin-top: 50px; padding: 10px; border-top: 1px solid #e0e0e0;">
+            <a href="https://nextmarketingstudio.com/" target="_blank" style="text-decoration: none; color: #666; font-size: 12px;">
+                Created by NEXT marketing STUDIO
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
