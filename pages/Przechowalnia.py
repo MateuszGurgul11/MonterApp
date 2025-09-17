@@ -588,8 +588,7 @@ def page_wymiary():
                     st.success("✅ Zapisano zmiany w szkicu")
         with col_b:
             if st.button("🗑️ Usuń szkic"):
-                if delete_draft(db, selected_id):
-                    st.success("✅ Szkic usunięty")
+                st.session_state[f'confirm_delete_{selected_id}'] = True
         with col_c:
             if st.button("✅ Finalizuj (zapisz do bazy)", type="primary"):
                 with st.spinner("Finalizowanie szkicu..."):
@@ -599,6 +598,25 @@ def page_wymiary():
                         st.balloons()
                     else:
                         st.error("❌ Nie udało się sfinalizować szkicu")
+        
+        # Potwierdzenie usunięcia szkicu
+        if st.session_state.get(f'confirm_delete_{selected_id}', False):
+            st.warning("⚠️ **UWAGA!** Czy na pewno chcesz usunąć ten szkic?")
+            st.warning("🗑️ Ta operacja jest nieodwracalna - wszystkie dane zostaną trwale usunięte!")
+            
+            col_confirm1, col_confirm2 = st.columns(2)
+            with col_confirm1:
+                if st.button("✅ TAK - USUŃ SZKIC", type="primary"):
+                    if delete_draft(db, selected_id):
+                        st.success("✅ Szkic usunięty")
+                        st.session_state[f'confirm_delete_{selected_id}'] = False
+                        st.rerun()
+                    else:
+                        st.error("❌ Błąd podczas usuwania szkicu")
+            with col_confirm2:
+                if st.button("❌ ANULUJ"):
+                    st.session_state[f'confirm_delete_{selected_id}'] = False
+                    st.rerun()
 
 
 if __name__ == "__main__":

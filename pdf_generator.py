@@ -1250,23 +1250,6 @@ class PDFGenerator:
             story.append(uwagi_panel)
             story.append(Spacer(1, 3*mm))
         
-        # Ostrzeżenie
-        warning = Paragraph(
-            self.safe_text("<b>⚠️ UWAGA!</b> Podloze powinno byc suche i rowne!!"),
-            ParagraphStyle(
-                name='Warning',
-                parent=self.styles['Normal'],
-                fontSize=10,
-                textColor=colors.red,
-                alignment=TA_CENTER,
-                borderWidth=2,
-                borderColor=colors.red,
-                borderPadding=10,
-                backColor=colors.HexColor('#FFE6E6')
-            )
-        )
-        story.append(warning)
-        story.append(Spacer(1, 3*mm))
         
         # Informacje o wykonawcach - kompaktowo
         wykonawcy_info = {}

@@ -394,7 +394,7 @@ def formularz_sprzedawcy_drzwi():
             st.dataframe(df, use_container_width=True, hide_index=True)
 
             # Wybór formularza
-            form_options = [""] + [f"🏠 {form['pomieszczenie']} | 👤 {form['imie_nazwisko']} | 🔑 {form['kod_dostepu']}" for form in filtered_forms]
+            form_options = [""] + [f"🏠 {form['pomieszczenie']} | 👤 {form.get('imie_nazwisko', 'Brak danych')} | 🔑 {form.get('kod_dostepu', 'Brak danych')}" for form in filtered_forms]
             selected_display = st.selectbox(
                 "🏠 Wybierz formularz do uzupełnienia:",
                 options=form_options,
@@ -805,6 +805,7 @@ def formularz_montera_podlogi():
     with col1:
         st.subheader("📋 Podstawowe informacje")
         pomieszczenie = st.text_input("Pomieszczenie:", key="pomieszczenie_monter_podlogi")
+        imie_nazwisko = st.text_input("Imię i nazwisko klienta:", key="imie_nazwisko_monter_podlogi")
         telefon = st.text_input("Telefon klienta:", key="telefon_monter_podlogi")
         
         # System montażu
@@ -865,6 +866,7 @@ def formularz_montera_podlogi():
     if st.button("🗂️ Zapisz do przechowalni", type="primary"):
         dane_pomiary = {
             "pomieszczenie": pomieszczenie,
+            "imie_nazwisko": imie_nazwisko,
             "telefon": telefon,
             "system_montazu": system_montazu,
             "podklad": podklad,
@@ -888,7 +890,7 @@ def formularz_montera_podlogi():
         }
         
         # Sprawdź wymagane pola
-        wymagane_pola = ["pomieszczenie", "telefon"]
+        wymagane_pola = ["pomieszczenie", "imie_nazwisko", "telefon"]
         brakujace_pola = [pole for pole in wymagane_pola if not dane_pomiary.get(pole)]
         
         if brakujace_pola:
@@ -1135,7 +1137,7 @@ def formularz_sprzedawcy_podlogi():
             st.dataframe(df, use_container_width=True, hide_index=True)
 
             # Wybór formularza
-            form_options_p = [""] + [f"🏠 {form['pomieszczenie']} | 👤 {form['imie_nazwisko']} | 📅 {form['data_pomiaru']} | 🔑 {form['kod_dostepu']}" for form in filtered_forms_p]
+            form_options_p = [""] + [f"🏠 {form['pomieszczenie']} | 👤 {form.get('imie_nazwisko', 'Brak danych')} | 📅 {form.get('data_pomiaru', 'Brak danych')} | 🔑 {form.get('kod_dostepu', 'Brak danych')}" for form in filtered_forms_p]
             selected_display = st.selectbox(
                 "🏠 Wybierz formularz do uzupełnienia:",
                 options=form_options_p,
@@ -1451,7 +1453,7 @@ def formularz_sprzedawcy_drzwi_wejsciowe():
             st.dataframe(df, use_container_width=True, hide_index=True)
 
             # Wybór formularza
-            form_options_dw = [""] + [f"🏠 {form['pomieszczenie']} | 👤 {form['imie_nazwisko']} | 📅 {form['data_pomiaru']} | 🔑 {form['kod_dostepu']}" for form in filtered_forms]
+            form_options_dw = [""] + [f"🏠 {form['pomieszczenie']} | 👤 {form.get('imie_nazwisko', 'Brak danych')} | 📅 {form.get('data_pomiaru', 'Brak danych')} | 🔑 {form.get('kod_dostepu', 'Brak danych')}" for form in filtered_forms]
             selected_display = st.selectbox(
                 "🏠 Wybierz formularz do uzupełnienia:",
                 options=form_options_dw,
