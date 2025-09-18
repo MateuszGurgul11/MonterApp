@@ -71,10 +71,7 @@ def can_view_all_data():
     return has_permission('sprzedawca')  # Sprzedawcy i admin mogą przeglądać
 
 def can_edit_measurements():
-    """Sprawdza czy użytkownik może edytować pomiary"""
-    user_role = st.session_state.get('user_role', '')
-    # Tylko monterzy i sprzedawcy mogą edytować pomiary (nie admin)
-    return user_role in ['monter', 'sprzedawca']
+    return has_permission('monter')
 
 def login_form():
     """Formularz logowania"""
