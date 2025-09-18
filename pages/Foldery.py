@@ -1149,8 +1149,7 @@ def display_podlogi_protocol(db, data, doc_id):
         if data.get('uwagi'):
             st.markdown("**Uwagi dla klienta:**")
             st.text(data.get('uwagi', ''))
-        
-        st.warning("⚠️ UWAGA!! Podłoże powinno być suche i równe!!")
+    
     
     # PDF poza formularzem
     if st.button(f"📄 Pobierz PDF", key=f"pdf_download_{key_suffix}"):
