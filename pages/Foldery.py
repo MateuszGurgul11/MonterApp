@@ -27,7 +27,7 @@ if not st.session_state.get('logged_in', False):
 def can_edit_records():
     """Sprawdza czy użytkownik może edytować rekordy"""
     user_role = st.session_state.get('user_role', '')
-    return user_role == 'admin'
+    return False
 
 def can_view_records():
     """Sprawdza czy użytkownik może przeglądać rekordy"""
@@ -185,10 +185,7 @@ def page_foldery():
     
     # Informacja o uprawnieniach
     user_role = st.session_state.get('user_role', '')
-    if can_edit_records():
-        st.success("🔧 **Tryb edycji:** Możesz edytować wszystkie rekordy")
-    else:
-        st.info("👁️ **Tryb podglądu:** Możesz tylko przeglądać dane (bez edycji)")
+    st.info("👁️ **Tryb podglądu:** Możesz tylko przeglądać dane (bez edycji)")
 
     db = setup_database()
     if db is None:
