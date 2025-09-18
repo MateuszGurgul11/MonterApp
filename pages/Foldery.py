@@ -1040,9 +1040,6 @@ def display_podlogi_protocol(db, data, doc_id):
             st.markdown("#### 👥 Wykonawcy")
             sprzedawca_id = st.text_input("Sprzedawca:", value=data.get('sprzedawca_id', ''), key=f"sprzedawca_id_{key_suffix}")
             
-            # Ostrzeżenie
-            st.warning("⚠️ UWAGA!! Podłoże powinno być suche i równe!!")
-            
             # Przyciski
             st.markdown("---")
             submit_button = st.form_submit_button("💾 Zapisz zmiany", type="primary")
