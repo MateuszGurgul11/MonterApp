@@ -1670,19 +1670,7 @@ def uzupelnij_formularz_drzwi_wejsciowe(db, formularz_data):
 def main():
     st.set_page_config(page_title=" Protokół Pomiaru", layout="wide")
     st.title("🔄 Protokół Pomiaru")
-    
-    # Sprawdzenie uprawnień - administratorzy nie mogą edytować pomiarów
-    user_role = st.session_state.get('user_role', '')
-    if user_role == 'admin':
-        st.error("🚫 **Dostęp zabroniony dla administratorów**")
-        st.warning("👑 Jako administrator możesz tylko przeglądać dane w panelu głównym.")
-        st.info("📋 Protokoły pomiarów mogą tworzyć tylko monterzy i sprzedawcy.")
-        
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            if st.button("🔙 Powrót do panelu głównego", type="primary"):
-                st.switch_page("main.py")
-        st.stop()
+
     
     # Wybór trybu
     tryb = st.sidebar.radio(
