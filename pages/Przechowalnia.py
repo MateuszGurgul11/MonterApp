@@ -118,18 +118,6 @@ def page_wymiary():
     st.set_page_config(page_title="Wymiary (kwarantanna)", layout="wide")
     st.title("🗂️ Wymiary")
 
-    # Sprawdzenie uprawnień - administratorzy nie mogą edytować pomiarów
-    user_role = st.session_state.get('user_role', '')
-    if user_role == 'admin':
-        st.error("🚫 **Dostęp zabroniony dla administratorów**")
-        st.warning("👑 Jako administrator możesz tylko przeglądać dane w panelu głównym.")
-        st.info("🗂️ Przechowalnia służy do edycji szkiców pomiarów - dostępna tylko dla monterów i sprzedawców.")
-        
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            if st.button("🔙 Powrót do panelu głównego", type="primary"):
-                st.switch_page("main.py")
-        st.stop()
 
     db = setup_database()
 
